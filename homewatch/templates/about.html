@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <p>
+        Homewatch est un serveur média auto-herbegé léger, écrit en Python.
+    </p>
+    <h2>Gestion de la vidéothèque</h2>
+    <p>
+        La vidéothèque est une simple structure de fichiers. Seuls les fichiers
+        dont l'extension est reconnue sont indexés. Le nom du fichier permet
+        également de renseigner des informations supplémentaires, telles que le
+        réalisateur, le numéro d'épisode ou l'année de publication. Pour cela,
+        le fichier doit être nommé de la façon suivante :
+        <q><code>Compteur</code> Titre (Réalisateur, Année).extension</q>
+    </p>
+    <p>
+        Le compteur peut être soit de la forme <code>1.</code> (éventuellement
+        précédé de zéros), soit de la forme <code>S01E01</code>, pour inclure un
+        numéro de saison ainsi qu'un numéro d'épisode.
+    </p>
+    <p>
+        Les dossiers peuvent être nommés de façon similaire, sans le compteur ou
+        l'extension, par exemple : <q>Titre (Réalisateur, Année)</q>.
+    </p>
+</div>
+{% endblock content %}

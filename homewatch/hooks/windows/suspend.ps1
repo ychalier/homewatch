@@ -1,0 +1,3 @@
+# Requires you to disable hibernation.
+# See https://superuser.com/questions/42124/
+rundll32.exe powrprof.dll,SetSuspendState 0,1,0

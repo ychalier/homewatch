@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}{% if library.name %}{{ library.name | title }}{% else %}Bibliothèque{% endif %} ∣ {{ super() }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ static('library.css') }}" />
+{% endblock styles %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ static('library.js') }}"></script>
+<script>
+    const FOLDER = "{{ url(library.path)[1:] }}";
+    const PLAYERMODE = {{ playermode | lower }};
+    const API_URL = "{{ url('api') }}";
+</script>
+{% endblock scripts %}
+
+{% block navbar_items %}
+{% if library.name %}
+<a class="navbar-item" href="{{ url('library', library.parent) }}"><i class="icon icon-arrow-left"></i></a>
+<span class="navbar-item">{{ library.name | title }}</span>
+{% else %}
+<span class="navbar-item">Bibliothèque</span>
+{% endif %}
+{% endblock navbar_items %}
+
+{% block navbar_menu %}
+{{ super() }}
+{% if playermode %}
+<span id="button-play-folder" class="menu-item">Lire le dossier</span>
+{% endif %}
+{% endblock navbar_menu %}
+
+{% block content %}
+<div class="library">
+    {% if library.subfolders %}
+    <div class="library-section">
+        {% for subfolder in library.subfolders %}
+        <a class="library-element subfolder" href="{{ url('library', library.path, subfolder.basename) }}">
+            <div class="subtitle">
+                {% for part in subfolder.subtitle %}
+                <span class="subtitle-item">{{ part }}</span>
+                {% endfor %}
+            </div>
+            <div class="title">{{ subfolder.title }}</div>
+            {% if playermode and subfolder.duration %}
+            <progress class="library-progress" min="0" value="{{ subfolder.progress }}" max="{{ subfolder.duration }}"></progress>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if library.playlists %}
+    <div class="library-section">
+        {% for playlist in library.playlists %}
+        <div class="library-element playlist" path="{{ url(library.path, playlist.basename)[1:] }}">
+            <div class="title">{{ playlist.title }} ({{ playlist.size }})</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if library.medias %}
+    <div class="library-section library-filters">
+        {% if playermode %}<div class="library-filter" filter="0">Non vu</div>{% endif %}
+        <div class="library-filter" filter="2">&lt; 20min</div>
+        <div class="library-filter" filter="1">En français</div>
+    </div>
+    <div class="library-section library-medias">
+        {% for m in library.medias %}
+            <div class="media-wrapper">
+                <div class="media" duration="{{ m.duration_ms }}" path="{{ url(library.path, m.basename)[1:] }}" href="{{ media(library.path, m.basename) }}">
+                    <div class="media-body">
+                        <img class="media-poster" loading="lazy" src="{{ media(library.path, m.thumbnail) }}" />
+                        <div class="media-overlay"></div>
+                    </div>
+                    <div class="media-info">
+                        <div class="subtitle">
+                            {% if m.counter %}<span class="subtitle-item">#{{ m.counter }}</span>{% endif %}
+                            {% if m.season %}<span class="subtitle-item">Saison {{ m.season }}</span>{% endif %}
+                            {% if m.episode %}<span class="subtitle-item">Épisode {{ m.episode }}</span>{% endif %}
+                            {% if m.director %}<span class="subtitle-item">{{ m.director }}</span>{% endif %}
+                            {% if m.year %}<span class="subtitle-item">{{ m.year }}</span>{% endif %}
+                            <span class="subtitle-item">{{ m.duration_display }}</span>
+                        </div>
+                        <div class="title">{{ m.title }}</div>
+                        {% if playermode %}<progress class="library-progress" min="0" value="{{ [m.progress, m.duration_ms] | min }}" max="{{ m.duration_ms }}"></progress>{% endif %}
+                    </div>
+                    <div class="media-badges">
+                        {% if m.is_visible_in_browser and not playermode %}<span class="media-badge">🌐</span>{% endif %}
+                        {% if m.has_french %}<span class="media-badge media-badge-language">🇫🇷</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if (not library.medias) and (not library.subfolders) and (not library.playlists) %}
+    <p class="container">
+        Ce dossier est vide 🥸
+    </p>
+    {% endif %}
+</div>
+
+<template id="template-media-details">
+    <div class="modal modal-media-details">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <img class="modal-background" />
+            <button class="modal-button-close"><i class="icon icon-cross"></i></button>
+            <div class="modal-body">
+                <div class="modal-info">
+                    <div class="subtitle"></div>
+                    <div class="title"></div>
+                </div>
+                <div class="modal-buttons">
+                    {% if playermode %}
+                    <button class="media-details-play">Lire</button>
+                    <button class="media-details-queue">Lire ensuite</button>
+                    <button class="media-details-resume">Reprendre</button>
+                    <button class="media-details-viewed">Marquer comme vu</button>
+                    {% endif %}
+                    <a class="button media-details-url">Lien</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock content %}

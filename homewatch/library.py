@@ -1,0 +1,718 @@
+import dataclasses
+import json
+import logging
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import time
+import unicodedata
+import urllib.parse
+import warnings
+
+import tqdm
+import requests
+
+from . import settings
+
+
+logger = logging.getLogger(__name__)
+
+
+SUBTITLE_TRACK = 0
+SUBTITLE_FILE = 1
+SUBTITLE_LANG_PATTERN = re.compile(r"\.([a-z]{2,3})$")
+
+
+def probe_video(path: pathlib.Path) -> dict:
+    logger.info("Probing video at %s", path)
+    probe_path = path.parent / settings.HIDDEN_DIRECTORY / (path.stem + ".probe.json")
+    probe_path.parent.mkdir(exist_ok=True)
+    if probe_path.is_file():
+        with probe_path.open("r", encoding="utf8") as file:
+            data = json.load(file)
+        return data
+    data = json.loads(subprocess.check_output([
+        "ffprobe",
+        "-v",
+        "quiet",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        path]).decode())
+    with probe_path.open("w", encoding="utf8") as file:
+        json.dump(data, file)
+    return data
+
+
+def ffmpeg_timestamp(total_seconds:float) -> str:
+    hours = int(total_seconds) // 3600
+    minutes = (int(total_seconds) - 3600 * hours) // 60
+    seconds = int(total_seconds) - 3600 * hours - 60 * minutes
+    milliseconds = int(1000 * (total_seconds - int(total_seconds)))
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+   
+
+def extract_thumbnail(path: pathlib.Path, duration: float) -> pathlib.Path:
+    logger.info("Extracting thumbnail of %s (duration is %f)", path, duration)
+    thumbnail_path = path.parent / settings.HIDDEN_DIRECTORY / (path.stem + ".thumbnail.jpg")
+    thumbnail_path.parent.mkdir(exist_ok=True)
+    if thumbnail_path.is_file():
+        return thumbnail_path.relative_to(path.parent)
+    w = str(settings.THUMBNAIL_WIDTH)
+    h = str(settings.THUMBNAIL_HEIGHT)
+    process = subprocess.Popen(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel", "error",
+            "-skip_frame", "nokey",
+            "-ss", ffmpeg_timestamp(duration),
+            "-i", path,
+            "-frames:v", "1",
+            "-q:v", "2",
+            "-vf",
+            f"scale='max({w},{h}*iw/ih)':'max({h},{w}*ih/iw)',crop={w}:{h}",
+            str(thumbnail_path),
+            "-y"
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    _, err = process.communicate()
+    if process.returncode != 0:
+        logger.warning(
+            "\r",
+            f"An error occured while extracting thumbnail for '{path}':",
+            "    " + re.sub("\r?\n", "\n    ", err.decode().strip()),
+            sep="\n"
+        )
+        if duration > 0:
+            logger.debug("Retrying with first frame")
+            return extract_thumbnail(path, 0)
+    if not thumbnail_path.is_file() and duration > 0:
+        return extract_thumbnail(path, 0)
+    return thumbnail_path.relative_to(path.parent)
+
+
+class AudioSource:
+
+    def __init__(self, index: int, language: str = None, title: str = None):
+        self.index = index
+        self.language = language
+        self.title = title
+    
+    def to_dict(self) -> dict:
+        return {
+            "id": self.index,
+            "lang": self.language,
+            "title": self.title
+        }
+    
+    @classmethod
+    def from_dict(cls, d:dict):
+        return cls(d["id"], d["lang"], d["title"])
+
+
+class SubtitleSource:
+
+    def __init__(self, source_type: int, language: str = None, title: str = None):
+        self.type = source_type
+        self.language = language
+        self.title = title
+
+    def to_dict(self) -> dict:
+        return {
+            "type": self.type,
+            "lang": self.language,
+            "title": self.title
+        }
+    
+    @classmethod
+    def from_dict(cls, d:dict):
+        if d["type"] == SUBTITLE_TRACK:
+            return SubtitleTrack(d["id"], d["lang"], d["title"])
+        elif d["type"] == SUBTITLE_FILE:
+            return SubtitleFile(d["basename"], d["lang"])
+
+
+class SubtitleTrack(SubtitleSource):
+
+    def __init__(self, index: int, language: str = None, title: str = None):
+        SubtitleSource.__init__(self, SUBTITLE_TRACK, language, title)
+        self.index = index
+
+    def to_dict(self) -> dict:
+        d = SubtitleSource.to_dict(self)
+        d["id"] = self.index
+        return d
+    
+
+class SubtitleFile(SubtitleSource):
+
+    def __init__(self, basename: str, language: str = None):
+        SubtitleSource.__init__(self, SUBTITLE_FILE, language)
+        self.basename = basename
+
+    def to_dict(self) -> dict:
+        d = SubtitleSource.to_dict(self)
+        d["basename"] = self.basename
+        return d
+
+
+class LibraryEntry:
+
+    def __init__(self, folder: "LibraryFolder", basename: str):
+        self.folder = folder
+        self.basename: str = basename
+
+
+class Media(LibraryEntry):
+
+    PATTERN_DIRECTOR = re.compile(r'^.*?( \((?:([^\(]*), )?(\d{4})\))?$')
+    PATTERN_EPISODE = re.compile(r'^((\d+)\. |S(\d+)E(\d+) (?:- )?)')
+
+    def __init__(self, folder: "LibraryFolder", basename: str, duration: float,
+                 thumbnail: str = None, audio_sources: list[AudioSource] = None,
+                 subtitle_sources: list[SubtitleSource] = None):
+        LibraryEntry.__init__(self, folder, basename)
+        self.duration = duration
+        self.thumbnail = thumbnail
+        self.audio_sources = audio_sources if audio_sources is not None else []
+        self.subtitle_sources = subtitle_sources if subtitle_sources is not None else []
+        self.name = None
+        self.ext = None
+        self.title = None
+        self.counter = None
+        self.season = None
+        self.episode = None
+        self.director = None
+        self.year = None
+        self._extract_fields()
+    
+    def _extract_fields(self):
+        split = os.path.splitext(self.basename)
+        self.name = split[0]
+        self.ext = split[1].lower()
+        remainder = self.name
+        rematch = self.PATTERN_DIRECTOR.search(remainder)
+        if rematch is not None and rematch.group(1) is not None:
+            remainder = remainder.replace(rematch.group(1), "").strip()
+            self.director = rematch.group(2)
+            self.year = int(rematch.group(3))
+        rematch = self.PATTERN_EPISODE.search(remainder)
+        if rematch is not None and rematch.group(1) is not None:
+            remainder = remainder.replace(rematch.group(1), "").strip()
+            if rematch.group(2) is not None:
+                self.counter = int(rematch.group(2))
+            else:
+                self.season = int(rematch.group(3))
+                self.episode = int(rematch.group(4))
+        self.title = remainder
+
+    def __str__(self) -> str:
+        return f"<Media '{self.basename}'>"
+
+    @property
+    def path(self) -> pathlib.Path:
+        return self.folder.path / self.basename
+    
+    @property
+    def folder_index(self) -> int:
+        return self.folder.index(self)
+
+    @property
+    def duration_display(self) -> str:
+        hours = int(self.duration / 3600)
+        minutes = int((self.duration - 3600 * hours) / 60)
+        if hours == 0:
+            return f"{minutes} min"
+        else:
+            return f"{hours}h{minutes:02d}"
+        
+    @property
+    def has_french(self) -> bool:
+        for source in self.audio_sources + self.subtitle_sources:
+            if source.language in ["fr", "fre", "fra"]:
+                return True
+        return False
+    
+    @property
+    def duration_ms(self) -> int:
+        return int(self.duration * 1000)
+
+    @property
+    def is_visible_in_browser(self) -> bool:
+        return self.ext in [".mp4", ".webm", ".ogg"]
+
+    def to_dict(self) -> dict:
+        return {
+            "basename": self.basename,
+            "duration": self.duration,
+            "thumbnail": str(self.thumbnail),
+            "audio_sources": [s.to_dict() for s in self.audio_sources],
+            "subtitle_sources": [s.to_dict() for s in self.subtitle_sources]
+        }
+    
+    def subtitle(self) -> str:
+        elements = []
+        if self.counter is not None:
+            elements.append(f"#{self.counter}")
+        if self.season is not None:
+            elements.append(f"Saison {self.season}")
+        if self.episode is not None:
+            elements.append(f"Épisode {self.episode}")
+        if self.director is not None:
+            elements.append(self.director)
+        if self.year is not None:
+            elements.append(str(self.year))
+        elements.append(self.duration_display)
+        return " · ".join(elements)
+    
+    def to_fulldict(self) -> dict:
+        base_dict = self.to_dict()
+        base_dict.update(
+            name=self.name,
+            ext=self.ext,
+            title=self.title,
+            counter=self.counter,
+            season=self.season,
+            director=self.director,
+            year=self.year,
+            mediapath=self.path.as_posix(),
+            folder=self.folder.path.as_posix(),
+            thumbnail=pathlib.Path(self.thumbnail).as_posix(),
+        )
+        return base_dict
+
+    def to_mindict(self) -> dict:
+        return {
+            "title": self.name,
+            "subtitle": self.subtitle(),
+            "folder": self.folder.path.as_posix(),
+            "thumbnail": pathlib.Path(self.thumbnail).as_posix(),
+        }
+
+    @classmethod
+    def from_dict(cls, folder: "LibraryFolder", d:dict):
+        return cls(
+            folder,
+            d["basename"],
+            d["duration"],
+            d["thumbnail"],
+            [AudioSource.from_dict(s) for s in d["audio_sources"]],
+            [SubtitleSource.from_dict(s) for s in d["subtitle_sources"]]
+        )
+
+    @classmethod
+    def from_path(cls, folder: "LibraryFolder", path: pathlib.Path):
+        logger.debug("Analyzing media at %s", path)
+        probe = probe_video(path)
+        media = cls(folder, path.name, float(probe["format"]["duration"]))
+        for stream in probe["streams"]:
+            match stream["codec_type"]:
+                case "audio":
+                    tags = stream.get("tags", {})
+                    media.audio_sources.append(AudioSource(
+                        stream["index"],
+                        tags.get("language"),
+                        tags.get("title")
+                    ))
+                case "subtitle":
+                    tags = stream.get("tags", {})
+                    media.subtitle_sources.append(SubtitleTrack(
+                        stream["index"],
+                        tags.get("language"),
+                        tags.get("title")
+                    ))
+        media.thumbnail = extract_thumbnail(path, media.duration / 2)
+        return media
+
+
+class Folder(LibraryEntry):
+
+    NAME_PATTERN = re.compile(r'^([^\(]+)( \((.+)\))?$')
+
+    def __init__(self, folder: "LibraryFolder", basename: str):
+        LibraryEntry.__init__(self, folder, basename)
+        self.title: str = None
+        self.subtitle: list[str] = []
+        self._extract_fields()
+
+    def _extract_fields(self):
+        rematch = self.NAME_PATTERN.match(self.basename)
+        if rematch is None:
+            self.title = self.basename
+        else:
+            self.title = rematch.group(1)
+            self.subtitle = []
+            if rematch.group(3) is not None:
+                for part in rematch.group(3).split(","):
+                    if part.strip() != "":
+                        self.subtitle.append(part.strip())
+    
+    def to_dict(self) -> dict:
+        return {
+            "basename": self.basename,
+        }
+    
+    @classmethod
+    def from_dict(cls, folder: "LibraryFolder", d: dict):
+        return cls(folder, d["basename"])
+    
+    @classmethod
+    def from_path(cls, folder: "LibraryFolder", path: str):
+        logger.debug("Analyzing subfolder at %s", path)
+        return cls(folder, os.path.basename(path))
+
+
+class Playlist(LibraryEntry):
+
+    def __init__(self, folder: "LibraryFolder", basename: str,
+                 elements: list[str] = None):
+        LibraryEntry.__init__(self, folder, basename)
+        self.elements: list[str] = elements if elements is not None else []
+    
+    @property
+    def title(self) -> str:
+        return os.path.splitext(self.basename)[0]
+    
+    @property
+    def size(self) -> int:
+        return len(self.elements)
+    
+    def to_dict(self) -> dict:
+        return {
+            "basename": self.basename,
+            "elements": self.elements
+        }
+    
+    @classmethod
+    def from_dict(cls, folder: "LibraryFolder", d: dict):
+        return cls(folder, d["basename"], d["elements"])
+
+    @classmethod
+    def from_path(cls, folder: "LibraryFolder", path: str):
+        logger.debug("Analyzing playlist at %s", path)
+        with open(path, "r", encoding="utf8") as file:
+            elements = []
+            for line in file.read().strip().split("\n"):
+                if line.strip() != "":
+                    elements.append(line.strip())
+        return cls(folder, os.path.basename(path), elements)
+
+
+class LibraryFolder:
+
+    def __init__(
+            self,
+            path: pathlib.Path,
+            medias: list[Media] = None,
+            folders: list[Folder] = None,
+            playlists: list[Playlist] = None):
+        self.path = path
+        self.medias = medias if medias is not None else []
+        self._media_index = { x.basename: x for x in self.medias }
+        self.subfolders = folders if folders is not None else []
+        self._subfolders_index = { x.basename: x for x in self.subfolders }
+        self.playlists = playlists if playlists is not None else []
+        self._playlists_index = { x.basename: x for x in self.playlists }
+    
+    def index(self, media: Media) -> int:
+        """Return index of media in media list. Returns None if media does not
+        exist.
+        """
+        for i, target in enumerate(self.medias):
+            if target.basename == media.basename:
+                return i
+        return None
+    
+    @property
+    def name(self) -> str:
+        return self.path.name
+
+    @property
+    def parent(self) -> pathlib.Path:
+        return self.path.parent
+    
+    def add_media(self, media: Media):
+        self.medias.append(media)
+        self._media_index[media.basename] = media
+    
+    def get_media(self, basename: str) -> Media:
+        return self._media_index.get(basename)
+    
+    def add_subfolder(self, folder: Folder):
+        self.subfolders.append(folder)
+        self._subfolders_index[folder.basename] = folder
+    
+    def get_subfolder(self, basename: str) -> Folder:
+        return self._subfolders_index.get(basename)
+
+    def add_playlist(self, playlist: Playlist):
+        self.playlists.append(playlist)
+        self._playlists_index[playlist.basename] = playlist
+    
+    def get_playlist(self, basename: str) -> Playlist:
+        return self._playlists_index.get(basename)
+    
+    def sort(self):
+        key = lambda x: "".join(
+            c for c in unicodedata.normalize("NFD", x.basename)
+            if unicodedata.category(c) != "Mn")
+        self.medias.sort(key=key)
+        self.subfolders.sort(key=key)
+        self.playlists.sort(key=key)
+
+    def to_dict(self) -> dict:
+        return {
+            "path": str(self.path),
+            "medias": [x.to_dict() for x in self.medias],
+            "subfolders": [x.to_dict() for x in self.subfolders],
+            "playlists": [x.to_dict() for x in self.playlists],
+        }
+
+    @classmethod
+    def from_scan(cls, root: pathlib.Path, path: pathlib.Path, quiet=True):
+        """
+        @param document_root: library document root, 
+        """
+        folder = cls(path)
+        fullpath = root / path
+        if not fullpath.is_relative_to(root) or not fullpath.is_dir():
+            logger.error("Could not scan library folder at %s", fullpath)
+            return folder
+        logger.info("Scanning library folder at %s", fullpath)
+        try:
+            _, dirs, files = next(os.walk(str(fullpath)))
+        except StopIteration:
+            return folder
+        pbar = tqdm.tqdm(total=len(dirs) + len(files), disable=quiet)
+        subtitle_paths: list[str] = []
+        medias_names: dict[str, Media] = {}
+        for dirname in dirs:
+            pbar.set_description(dirname)
+            pbar.update(1)
+            if dirname == settings.HIDDEN_DIRECTORY:
+                continue
+            folder.add_subfolder(Folder.from_path(folder, dirname))
+        for filename in files:
+            pbar.set_description(filename)
+            pbar.update(1)
+            path = fullpath / filename
+            ext = path.suffix.lower()
+            if ext in settings.VIDEO_EXTS:
+                media = Media.from_path(folder, path)
+                medias_names[media.name] = media
+                folder.add_media(media)
+            elif ext in settings.SUBTITLE_EXTS:
+                subtitle_paths.append(path)
+            elif ext in settings.PLAYLIST_EXTS:
+                folder.add_playlist(Playlist.from_path(folder, path))
+        pbar.close()
+        for path in subtitle_paths:
+            name = path.stem
+            lang_match = SUBTITLE_LANG_PATTERN.search(name)
+            lang = None
+            if lang_match is not None:
+                name = SUBTITLE_LANG_PATTERN.sub("", name)
+                lang = lang_match.group(1)
+            if name not in medias_names:
+                warnings.warn("Could not find media associated to subtitle file '%s'" % path)
+                continue
+            medias_names[name].subtitle_sources.append(SubtitleFile(path.name, lang))
+        folder.sort()
+        return folder
+    
+    @classmethod
+    def from_url(cls, url: str):
+        logger.info("Fetching library folder at %s", url)
+        d = requests.get(url).json()
+        return cls.from_dict(d)
+    
+    @classmethod
+    def from_dict(cls, d: dict):
+        folder = cls(pathlib.Path(d["path"]))
+        for dd in d["medias"]:
+            folder.add_media(Media.from_dict(folder, dd))
+        for dd in d["subfolders"]:
+            folder.add_subfolder(Folder.from_dict(folder, dd))
+        for dd in d["playlists"]:
+            folder.add_playlist(Playlist.from_dict(folder, dd))
+        return folder
+    
+    @classmethod
+    def from_file(cls, path:str):
+        logger.info("Loading library folder at %s", path)
+        with open(path, "r", encoding="utf8") as file:
+            d = json.load(file)
+        return cls.from_dict(d)
+    
+    @classmethod
+    def from_settings(cls, path: pathlib.Path):
+        if settings.LIBRARY_MODE == "local":
+            return cls.from_scan(pathlib.Path(settings.LIBRARY_ROOT), path)
+        elif settings.LIBRARY_MODE == "remote":
+            url = urllib.parse.urljoin(settings.LIBRARY_ROOT, (path / "index.json").as_posix())
+            return cls.from_url(url)
+        raise ValueError(f"LIBRARY_MODE: {settings.LIBRARY_MODE}")
+
+
+@dataclasses.dataclass
+class HierarchyElement:
+    path: str
+    medias: int
+
+
+class Hierarchy:
+
+    def __init__(self, root: pathlib.Path, folders: list[HierarchyElement]):
+        self.root = root
+        self.folders: list[HierarchyElement] = folders
+
+    def to_dict(self):
+        return {
+            "root": self.root.as_posix(),
+            "folders": [
+                {"path": f.path, "medias": f.medias}
+                for f in self.folders
+            ]
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict):
+        folders = [
+            HierarchyElement(dd["path"], dd["medias"])
+            for dd in d["folders"]
+        ]
+        return cls(pathlib.Path(d["root"]), folders)
+    
+    @classmethod
+    def from_scan(cls, root: pathlib.Path):
+        logger.info("Exploring hierarchy at %s", root)
+        folders = []
+        f = lambda filename: os.path.splitext(filename)[1] in settings.VIDEO_EXTS
+        for dirpath, _, files in os.walk(root):
+            if os.path.basename(dirpath) == settings.HIDDEN_DIRECTORY:
+                continue
+            folders.append(HierarchyElement(
+                pathlib.Path(dirpath).relative_to(root).as_posix(),
+                len(list(filter(f, files)))))
+        return cls(root, folders)
+    
+    @classmethod
+    def from_url(cls, url: str):
+        logger.info("Fetching hierarchy at %s", url)
+        d = requests.get(url + "hierarchy.json").json()
+        return cls.from_dict(d)
+
+    @classmethod
+    def from_settings(cls):
+        if settings.LIBRARY_MODE == "local":
+            return cls.from_scan(pathlib.Path(settings.LIBRARY_ROOT))
+        elif settings.LIBRARY_MODE == "remote":
+            return cls.from_url(settings.LIBRARY_ROOT)
+        raise ValueError(f"LIBRARY_MODE: {settings.LIBRARY_MODE}")
+
+
+def test_library_connection(max_retries=3):
+    if settings.LIBRARY_MODE == "local":
+        return
+    for attempt in range(max_retries):
+        success = True
+        try:
+            response = requests.get(settings.LIBRARY_ROOT + "alive")
+        except requests.exceptions.ConnectionError:
+            success = False
+        if success and response.status_code == 200:
+            logger.info("Successfully connected to remote library")
+            return
+        logger.error("Could not connect to remote library, retrying in 1s (attempt %d)", attempt + 1)
+        print("Remote library unreachable, retrying in 1s")
+        time.sleep(1)
+    logger.error("Could not connect to remote library. Maximum retries reached (%d). Exiting.", max_retries)
+    print("Remote library unreachable, exiting")
+    os._exit(1)
+
+
+class Library(dict[str, LibraryFolder]):
+
+    def __init__(self, root: pathlib.Path, folders: list[LibraryFolder] = []):
+        self.root = root
+        for folder in folders:
+            self[folder.path.as_posix()] = folder
+
+    def to_dict(self) -> dict:
+        return {
+            "root": str(self.root),
+            "folders": [folder.to_dict() for folder in self.values()]
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict):
+        return cls(
+            pathlib.Path(d["root"]),
+            [LibraryFolder.from_dict(dd) for dd in d["folders"]])
+    
+    @classmethod
+    def from_scan(cls, root: pathlib.Path):
+        logger.info("Scanning library at %s", root)
+        library = cls(root)
+        hierarchy = Hierarchy.from_settings()
+        total = sum([folder.medias for folder in hierarchy.folders])
+        pbar = tqdm.tqdm(total=total, desc="Scanning library", unit="media")
+        for folder in hierarchy.folders:
+            folder_path = pathlib.Path(folder.path)
+            logger.debug("Adding folder to library: %s", folder_path)
+            library_folder = LibraryFolder.from_scan(library.root, folder_path, True)
+            library[folder_path.as_posix()] = library_folder
+            pbar.update(folder.medias)
+        pbar.close()
+        return library
+
+    @classmethod
+    def from_url(cls, url: str):
+        logger.info("Fetching library at %s", url)
+        test_library_connection()
+        library = cls(url)
+        hierarchy = Hierarchy.from_settings()
+        total = sum([folder.medias for folder in hierarchy.folders])
+        pbar = tqdm.tqdm(total=total, desc="Fetching library", unit="media")
+        for folder in hierarchy.folders:
+            folder_path = pathlib.Path(folder.path)
+            folder_url = urllib.parse.urljoin(url, (folder_path / "index.json").as_posix())
+            library_folder = LibraryFolder.from_url(folder_url)
+            library[folder_path.as_posix()] = library_folder
+            pbar.update(folder.medias)
+        pbar.close()
+        return library
+    
+    @classmethod
+    def from_settings(cls):
+        if settings.LIBRARY_MODE == "local":
+            return cls.from_scan(pathlib.Path(settings.LIBRARY_ROOT))
+        elif settings.LIBRARY_MODE == "remote":
+            return cls.from_url(settings.LIBRARY_ROOT)
+        raise ValueError(f"LIBRARY_MODE: {settings.LIBRARY_MODE}")
+
+    @staticmethod
+    def clear(top: pathlib.Path):
+        logger.info("Clearing library at %s", top)
+        for path in list(top.glob("**")):
+            if path.is_dir() and path.name == settings.HIDDEN_DIRECTORY:
+                logger.info("Deleting %s", path)
+                shutil.rmtree(str(path))
+    
+    def get_media(self, path: pathlib.Path) -> Media | None:
+        folder = self.get(path.parent.as_posix(), None)
+        if folder is None:
+            return None
+        return folder.get_media(path.name)
+    
+    def get_playlist(self, path: pathlib.Path) -> Playlist | None:
+        folder = self.get(path.parent.as_posix(), None)
+        if folder is None:
+            return None
+        return folder.get_playlist(path.name)

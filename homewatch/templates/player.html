@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ static('player.css') }}" />
+{% endblock styles %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ static('player.js') }}"></script>
+<script>
+    const MEDIA_URL = "{{ media_url }}";
+    const API_URL = "{{ url('api') }}";
+    const WSS_URL = "{{ wss_url }}";
+</script>
+{% endblock scripts %}
+
+{% block header %}{% endblock header %}
+
+{% block content %}
+<div class="player-layout collapsed">
+    <div class="player-library-container">
+        <iframe class="player-library" basesrc="{{ url('library') }}"></iframe>
+    </div>
+    <div class="player hidden">
+        <div class="player-top timebar">
+            <div class="timebar-elapsed">-:--</div>
+            <input class="timebar-input" type="range" min="0" max="0" value="0" step="1" />
+            <div class="timebar-remaining">-:--</div>
+        </div>
+        <div class="player-bottom">
+            <div class="player-left inline-media">
+                <div class="inline-media-poster-wrapper">
+                    <img class="inline-media-poster" />
+                </div>
+                <div class="inline-media-info">
+                    <div class="title"></div>
+                    <div class="subtitle"></div>
+                </div>
+            </div>
+            <div class="player-middle">
+                <button id="button-shuffle" class="button-icon"><i class="icon icon-shuffle"></i></button>
+                <button id="button-prev" class="button-icon"><i class="icon icon-prev"></i></button>
+                <button id="button-rewind" class="button-icon"><i class="icon icon-rewind"></i></button>
+                <button id="button-play" class="button-icon button-icon-xl"><i class="icon icon-play"></i></button>
+                <button id="button-fastforward" class="button-icon"><i class="icon icon-fastforward"></i></button>
+                <button id="button-next" class="button-icon"><i class="icon icon-next"></i></button>
+                <button id="button-autoplay" class="button-icon"><i class="icon icon-loop"></i></button>
+            </div>
+            <div class="player-right">
+                <button class="panel-button" id="button-collapse"><i class="icon icon-expand"></i></button>
+                <button class="panel-button" id="button-volume"><i class="icon icon-volume-max"></i></span>
+                <button class="panel-button" id="button-queue"><i class="icon icon-playlist"></i></span>
+                <button class="panel-button" id="button-settings"><i class="icon icon-settings"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="panel-overlay"></div>
+    <div id="panel-volume" class="panel">
+        <label class="panel-label" for="player-volume">Volume</label>
+        <div id="player-volume-wrapper">
+            <input type="range" min="0" max="100" value="50" id="player-volume" />
+            <span id="player-volume-value">50 %</span>
+        </div>
+    </div>
+    <div id="panel-queue" class="panel">
+        <div id="queue" class="queue"></div>
+    </div>
+    <div id="panel-settings" class="panel">
+        
+        <!--<button id="button-stop" class="button-icon"><i class="icon icon-media-stop"></i></button>-->
+
+        <div class="panel-title">
+            <i class="panel-title-icon icon icon-sleep"></i>
+            <span class="panel-title-label">Veille</span>
+        </div>
+        
+        <button id="button-closeonend">Éteindre le serveur après la lecture</button>
+        <button id="button-sleep">Mise en veille automatique</button>
+
+        <div class="panel-title">
+            <i class="panel-title-icon icon icon-language"></i>
+            <span class="panel-title-label">Langue</span>
+        </div>
+
+        <label class="panel-label" for="player-audio-sources">Piste audio</label>
+        <select id="player-audio-sources"></select>
+
+        <label class="panel-label" for="player-subtitle-sources">Piste de sous-titres</label>
+        <select id="player-subtitle-sources"></select>
+
+        <div class="panel-title">
+            <i class="panel-title-icon icon icon-image"></i>
+            <span class="panel-title-label">Image</span>
+        </div>
+
+        <label class="panel-label" for="player-select-aspect">Format d'image</label>
+        <select id="player-select-aspect">
+            <option value="" selected>Défaut</option>
+            <option value="1:1">1:1 (Carré)</option>
+            <option value="4:3">4:3 (Standard)</option>
+            <option value="166:100">1.66:1 (Europe)</option>
+            <option value="16:9">16:9 (HDTV)</option>
+            <option value="185:100">1.85:1 (US)</option>
+            <option value="239:100">2.39:1 (Anamorphique)</option>
+            <option value="275:100">2.75:1 (Ultra-Panavision)</option>
+        </select>
+
+    </div>
+</div>
+
+<template id="template-queue-media">
+    <div class="queue-media inline-media">
+        <div class="inline-media-poster-wrapper">
+            <img class="inline-media-poster" load="lazy" />
+        </div>
+        <div class="inline-media-info">
+            <div class="title"></div>
+            <div class="subtitle"></div>
+        </div>
+    </div>
+</template>
+
+{% endblock content %}

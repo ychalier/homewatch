@@ -1,0 +1,7 @@
+jinja2
+python-vlc
+qrcode
+requests
+tqdm
+websockets
+werkzeug

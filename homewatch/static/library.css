@@ -1,0 +1,232 @@
+/**
+ * Component: library
+ */
+
+.library {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem 0 0 0;
+}
+
+.library-section {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+}
+
+.library-element {
+    position: relative;
+    margin-bottom: .4rem;
+    border-radius: .4rem;
+    background: #101010;
+    padding: .4rem .6rem;
+    min-height: 2em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+}
+
+.library-element.playlist {
+    cursor: pointer;
+    background: white;
+    color: black;
+}
+
+.library-filters {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.library-filter {
+    margin: 0 .2rem .2rem 0;
+    border-radius: .4rem;
+    background: #101010;
+    padding: .4rem .6rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.library-filter.active {
+    background: white;
+    color: black;
+}
+
+.library-medias {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-right: 0;
+}
+
+.library-progress {
+    height: .2rem;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+/**
+ * Component: media
+ */
+
+.media-wrapper {
+    width: calc(50% - 1rem);
+    margin-right: 1rem;
+    margin-bottom: 1rem;
+}
+
+.media {
+    position: relative;
+    box-sizing: border-box;
+    border-radius: .4rem;
+    overflow: hidden;
+    color: white;
+    user-select: none;
+    cursor: pointer;
+    aspect-ratio: 2/3;
+}
+
+.media-body {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.media-poster {
+    width: 100%;
+}
+
+.media-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #00000000 0%, #00000000 30%, #000000ff 100%);
+}
+
+.media-info {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    padding: 0 .4rem .4rem .4rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.media-badges {
+    position: absolute;
+    top: .4rem;
+    right: .4rem;
+}
+
+/**
+ * Component: modal
+ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #00000080;
+    animation: fadein .4s ease;
+}
+
+.modal-container {
+    display: block;
+    box-sizing: border-box;
+    position: fixed;
+    z-index: 2;
+    left: 1.5rem;
+    top: 50%;
+    width: calc(100vw - 3rem);
+    height: auto;
+    padding: 1rem;
+    overflow: hidden;
+    background: #1e1e1e;
+    border-radius: .8rem;
+    box-shadow: 0 0 3px rgba(00, 0, 0, 0.5);
+    animation: scalein .3s ease;
+}
+
+@keyframes scalein {
+    from {
+        transform: scale(0, 0);
+    }
+    to {
+        transform: scale(1, 1);
+    }
+}
+
+.modal-body {
+    position: relative;
+    z-index: 3;
+}
+
+.modal-background {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    aspect-ratio: 2/3;
+    filter: blur(2px);
+    opacity: .2;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+.modal-button-close {
+    z-index: 4;
+    position: absolute;
+    background: none;
+    border: none;
+    top: .4rem;
+    right: .4rem;
+}
+
+.modal-buttons {
+    margin-top: .8rem;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.modal-buttons button {
+    margin: 0 .2rem 0.2rem 0; 
+}
+
+/**
+ * Responsive layout
+ */
+
+@media (min-width: 500px) {
+    .library-section {
+        flex-direction: row;
+    }
+
+    .library-element {
+        margin-right: .4rem;
+    }
+
+    .library-element:last-child {
+        margin-right: 0;
+    }
+
+    .media-wrapper {
+        width: 11.9em;
+    }
+
+    .modal-container {
+        max-width: 500px;
+        left: calc(50% - 250px);
+    }
+}

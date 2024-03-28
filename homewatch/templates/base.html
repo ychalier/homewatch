@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+    <meta charset="utf8">
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/x-icon" href="{{ static('favicon.ico') }}" />
+    <title>{% block title %}Homewatch{% endblock title %}</title>
+    {% block styles %}
+    <link rel="stylesheet" href="{{ static('master.css') }}" />
+    {% endblock styles %}
+    {% block scripts %}
+    <script src="{{ static('master.js') }}"></script>
+    {% endblock scripts %}
+</head>
+
+<body>
+    {% block header %}
+    <header class="navbar">
+        <nav class="navbar-items">
+            {% block navbar_items %}
+            <a class="navbar-item" href="{{ url('/') }}" id="location">Homewatch</a>
+            {% endblock navbar_items %}
+        </nav>
+        <div class="navbar-menu menu">
+            <span class="menu-icon"><i class="icon icon-vdots"></i></span>
+            <div class="menu-items">
+                {% block navbar_menu %}
+                <a class="menu-item" href="{{ url('about') }}">À propos</a>
+                {% if playermode %}
+                <a class="menu-item" href="{{ url('api', 'close') }}?hooks=0">Éteindre le serveur</a>
+                <a class="menu-item" href="{{ url('api', 'close') }}?hooks=1">Éteindre le serveur et exécuter les scripts</a>
+                {% endif %}
+                {% endblock navbar_menu %}
+            </div>
+        </div>
+    </header>
+    {% endblock header %}
+    {% block content %}{% endblock content %}
+</body>
+
+</html>
