@@ -20,15 +20,15 @@ machine per component, as you like. Here are two basic setup ideas:
 
 **Home setup**
 - A local server (e.g. a Raspberry Pi) acts as a media server, using local video files
-- A computer acts as the video player playing medias over the local network
+- A computer acts as the video player, streaming medias from the local network
 - A phone remotely controls the video player on the computer
 
 Note that I tried using a Raspberry Pi 3B+ as a video player, but performances
 were to low for it to be reliable.
 
-On each machine where Homewatch runs (e.g. the computer in the bedroom setup
-or the local server and the computer in the home setup), you'll need to install
-Homewatch using the following instructions, and edit the settings accordingly.
+Each machine hosting either the media server or the video player (or both)
+requires an installation of Homewatch and a specific configuration. See
+instructions below.
 
 ### Prerequisite
 
@@ -60,13 +60,14 @@ library.
 
 ## Home Setup Scenario
 
-Here is an example scenario detailed how to use this software.
+Here is an example scenario, to get an idea of how Homewatch can be used.
 
 A Raspberry Pi has media files stored on a hard drive. Install Homewatch on it,
 set `SERVER_MODE` to `library`, `LIBRARY_MODE` to `local` and `LIBRARY_ROOT` to
-the hard drive path, e.g. `/mnt/usb/`. Homewatch is also a WSGI, and thus can be
-embedded within an Apache server, e.g. with
-[mod_wsgi](https://modwsgi.readthedocs.io/). Here is an example configuration:
+the hard drive path, e.g. `/mnt/usb/`. As Homewatch server is a
+[WSGI](https://wsgi.readthedocs.io/en/latest/) application, it can be embedded
+within an Apache server, e.g. with [mod_wsgi](https://modwsgi.readthedocs.io/).
+Here is a configuration sample:
 
 ```text
 WSGIScriptAlias / /path/to/homewatch/wsgi.py
@@ -84,19 +85,17 @@ Alias /media/ /mnt/usb/
 
 Then, on a computer, install Homewatch again, set `SERVER_MODE` to `player`,
 `LIBRARY_MODE` to `remote` and `LIBRARY_ROOT` to the Raspberry Pi URL, e.g.
-`http://192.168.1.42/library/`. Homewatch is executed with the following
-command:
+`http://192.168.1.42/library/`. Start Homewatch with the following command:
 
 ```console
 python homewatch.py --qrcode 192.168.1.69:8000
 ```
 
-The `--qrcode` flag is used to print a QR code in the terminal, that can scanned
-with the phone to get redirected to the control remote. `192.168.1.69` is the
-local IP address of the laptop.
+The `--qrcode` flag is used to print a QR code in the terminal, that can be 
+scanned with the phone to get redirected to the control remote. `192.168.1.69`
+is the local IP address of the laptop.
 
 On the phone, go to http://192.168.1.69:8000 (or scan the QR code), and voilà!
-
 
 ## Built With
 
