@@ -20,6 +20,19 @@ def setup_logging(verbose: bool = False):
     werkzeug_logger.addHandler(syslog)
 
 
+def parse_host_string(string: str, default_hostname: str = "127.0.0.1",
+                      default_port: int = 8000) -> tuple[str, int]:
+    if string is None:
+        return default_hostname, default_port
+    m = re.match(r"^(?:https?://)?([A-Za-z0-9\.]+)(?::(\d+))?$", string)
+    hostname, port = default_hostname, default_port
+    if m is not None:
+        hostname = m.group(1)
+        if m.group(2) is not None:
+            port = int(m.group(2))
+    return hostname, port
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -47,10 +60,5 @@ def main():
             else:
                 print(json.dumps(library.to_dict()))
         case "runserver":
-            host_match = re.match(r"^([A-Za-z0-9\.]+)(?::(\d+))?$", args.host)
-            hostname, port = "127.0.0.1", 8000
-            if host_match is not None:
-                hostname = host_match.group(1)
-                if host_match.group(2) is not None:
-                    port = int(host_match.group(2))
+            hostname, port = parse_host_string(args.host)
             runserver(hostname, port, args.debug, args.qrcode)
