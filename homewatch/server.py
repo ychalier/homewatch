@@ -294,8 +294,9 @@ class PlayerServer(LibraryServer):
         elif request.method == "POST":
             query = parse_qs(request.url)
             path = query["path"]
+            key = self.theater.library.get_media(pathlib.Path(path))
             value = int(query["value"])
-            self.theater.history.update(path, value)
+            self.theater.history.update(key, value)
             return werkzeug.Response("OK", status=204, mimetype="text/plain")
         return  werkzeug.Response("405 Method Not Allowed", status=405, mimetype="text/plain")
 
