@@ -11,7 +11,10 @@ function registerUserLocation() {
     localStorage.setItem(STORAGE_KEY_USER_LOCATION, JSON.stringify(userLocation));
 }
 registerUserLocation();
-document.querySelector(".library").addEventListener("scroll", registerUserLocation);
+document.querySelector(".library").addEventListener("scroll", () => {
+    registerUserLocation();
+    clearTimeout(pressTimer);
+});
 
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has("scroll")) {
