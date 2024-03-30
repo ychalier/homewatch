@@ -11,6 +11,7 @@ import urllib.parse
 import jinja2
 import qrcode
 import websockets
+import websockets.exceptions
 import werkzeug
 import werkzeug.middleware.shared_data
 import werkzeug.serving
@@ -151,8 +152,13 @@ class WebsocketServer(threading.Thread, PlayerObserver):
         async def register(websocket):
             logger.debug("WebSocket client connected: %s", websocket.id.hex)
             self.connections.add(websocket)
-            async for message in websocket:
-                self._on_client_message(websocket, message)
+            try:
+                async for message in websocket:
+                    self._on_client_message(websocket, message)
+            except websockets.exceptions.ConnectionClosedError:
+                pass
+            except ConnectionResetError:
+                pass
             logger.debug("WebSocket client disconnected: %s", websocket.id.hex)
             self.connections.remove(websocket)
         async def start_server():
