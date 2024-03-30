@@ -79,6 +79,10 @@ function showMediaDetails(mediaElement) {
     document.body.appendChild(detailsElement);
 }
 
+window.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+});
+
 for (const mediaElement of document.querySelectorAll(".media")) {
     mediaElement.addEventListener("mouseup", () => {
         showMediaDetails(mediaElement);
