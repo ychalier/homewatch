@@ -190,6 +190,7 @@ class Player {
     }
 
     setMediaPath(newMediaPath) {
+        if (newMediaPath == "None") newMediaPath = null;
         if (newMediaPath != null && this.mediaPath == null) {
             document.querySelector(".player").classList.remove("hidden");
         }
@@ -371,6 +372,11 @@ fetch(`${API_URL}/player`).then(res =>  res.json()).then(data => {
 /**
  * Event listeners
  */
+
+window.addEventListener("focus", () => {
+    websocket.send("MEDI");
+    player.fetchQueue();
+});
 
 function bindButton(buttonId, callback) {
     document.getElementById(buttonId).addEventListener("click", () => {

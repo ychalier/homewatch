@@ -144,6 +144,8 @@ class WebsocketServer(threading.Thread, PlayerObserver):
                     self.sleep_at = int(args[0])
             case "JUMP":
                 self.theater.jump_to(int(args[0]))
+            case "MEDI":
+                self._broadcast(f"MPTH {self.player.media_path}")
 
     def run(self):
         async def register(websocket):
