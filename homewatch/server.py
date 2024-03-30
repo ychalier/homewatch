@@ -154,7 +154,14 @@ class WebsocketServer(threading.Thread, PlayerObserver):
             self.connections.add(websocket)
             try:
                 async for message in websocket:
-                    self._on_client_message(websocket, message)
+                    try:
+                        self._on_client_message(websocket, message)
+                    except Exception as err:
+                        logger.error(
+                            "Error on client %s message \"%s\": %s",
+                            websocket.id.hex,
+                            message,
+                            err)
             except websockets.exceptions.ConnectionClosedError:
                 pass
             except ConnectionResetError:
