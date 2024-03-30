@@ -659,6 +659,9 @@ class Library(dict[str, LibraryFolder]):
     @classmethod
     def from_scan(cls, root: pathlib.Path):
         logger.info("Scanning library at %s", root)
+        if not root.is_dir():
+            logger.error("Library root does not exist: %s", root)
+            raise FileNotFoundError(str(root))
         library = cls(root)
         hierarchy = Hierarchy.from_settings()
         total = sum([folder.medias for folder in hierarchy.folders])
