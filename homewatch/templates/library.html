@@ -30,6 +30,8 @@
 {{ super() }}
 {% if playermode %}
 <span id="button-play-folder" class="menu-item">Lire le dossier</span>
+<span id="button-viewed-folder" class="menu-item">Marquer comme vu</span>
+<span id="button-unviewed-folder" class="menu-item">Marquer comme non vu</span>
 {% endif %}
 {% endblock navbar_menu %}
 
@@ -120,6 +122,7 @@
                     <button class="media-details-queue">Lire ensuite</button>
                     <button class="media-details-resume">Reprendre</button>
                     <button class="media-details-viewed">Marquer comme vu</button>
+                    <button class="media-details-unviewed">Marquer comme non vu</button>
                     {% endif %}
                     <a class="button media-details-url">Lien</a>
                 </div>

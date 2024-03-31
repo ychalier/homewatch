@@ -5,7 +5,7 @@ import time
 
 from .player import Player, PlayerObserver
 from .history import History
-from .library import Library, LibraryFolder
+from .library import Library, LibraryFolder, Media
 from .queue import Queue, StartOfQueueException, EndOfQueueException
 
 
@@ -108,3 +108,29 @@ class Theater(PlayerObserver):
             subfolder.progress = progress
             subfolder.duration = duration
 
+    def set_viewed_media(self, media: Media, viewed: bool):
+        if viewed:
+            self.history.update(media, media.duration_ms)
+        else:
+            self.history.update(media, 0)
+
+    def set_viewed_folder(self, folder: LibraryFolder, viewed: bool):
+        for media in folder.medias:
+            self.set_viewed_media(media, viewed)
+        for subfolder in folder.subfolders:
+            lf = self.library.get_subfolder(folder, subfolder)
+            self.set_viewed_folder(lf, viewed)
+
+    def set_viewed_path(self, path: pathlib.Path, viewed: bool):
+        logger.info("Setting viewed status of %s to %s", path, viewed)
+        if path.as_posix() in self.library:
+            logger.debug("Path %s is a folder", path)
+            self.set_viewed_folder(self.library[path.as_posix()], viewed)
+            return
+        media = self.library.get_media(path)
+        if media is None:
+            logger.error("Path %s is neither a folder or a media", path)
+            raise KeyError(path)
+        logger.debug("Path %s is a media", path)
+        self.set_viewed_media(media, viewed)
+        

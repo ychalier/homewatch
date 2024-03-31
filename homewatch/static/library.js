@@ -22,11 +22,18 @@ if (urlParams.has("scroll")) {
     document.querySelector(".library").scrollTo(0, scrollY);
 }
 
-function setHistory(path, value, mediaProgress) {
-    fetch(`${API_URL}/history?path=${path}&value=${value}`, {method: "post"})
+function setViewedMedia(path, viewed, mediaProgress) {
+    fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
         .then(() => {
             closeMediaDetails();
-            mediaProgress.value = value;
+            mediaProgress.value = viewed == 1 ? parseFloat(mediaProgress.max) : 0;
+        });
+}
+
+function setViewedFolder(path, viewed) {
+    fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
+        .then(() => {
+            window.location.reload();
         });
 }
 
@@ -68,10 +75,18 @@ function showMediaDetails(mediaElement) {
         const buttonMarkAsViewed = detailsElement.querySelector(".media-details-viewed");
         if (seek < .98 * duration) {
             buttonMarkAsViewed.addEventListener("click", () => {
-                setHistory(path, duration, mediaProgress);
+                setViewedMedia(path, 1, mediaProgress);
             });
         } else {
             remove(buttonMarkAsViewed);
+        }
+        const buttonMarkAsUnviewed = detailsElement.querySelector(".media-details-unviewed");
+        if (seek > 0) {
+            buttonMarkAsUnviewed.addEventListener("click", () => {
+                setViewedMedia(path, 0, mediaProgress);
+            });
+        } else {
+            remove(buttonMarkAsUnviewed);
         }
     }
     detailsElement.querySelector(".modal-button-close").addEventListener("click", closeMediaDetails);
@@ -101,6 +116,16 @@ for (const mediaElement of document.querySelectorAll(".media")) {
 if (PLAYERMODE) {
     document.getElementById("button-play-folder").addEventListener("click", () => {
         loadAndPlay(FOLDER, null, "folder");
+    });
+    document.getElementById("button-viewed-folder").addEventListener("click", () => {
+        if (confirm(`Marquer tous les éléments et sous-dossiers de ${ FOLDER } comme vus ?`)) {
+            setViewedFolder(FOLDER, 1);
+        }
+    });
+    document.getElementById("button-unviewed-folder").addEventListener("click", () => {
+        if (confirm(`Marquer tous les éléments et sous-dossiers de ${ FOLDER } comme non vus ?`)) {
+            setViewedFolder(FOLDER, 0);
+        }
     });
     for (const playlist of document.querySelectorAll(".playlist")) {
         playlist.addEventListener("click", () => {
