@@ -5,7 +5,7 @@ const iframe = document.querySelector("iframe");
 const userLocationString = localStorage.getItem(STORAGE_KEY_USER_LOCATION);
 if (userLocationString != "" && userLocationString != null) {
     const userLocation = JSON.parse(userLocationString);
-    iframe.src = userLocation.pathname + `?scroll=${userLocation.scroll}`;
+    iframe.src = userLocation.pathname + `?embedded=1&scroll=${userLocation.scroll}`;
 } else {
     iframe.src = iframe.getAttribute("basesrc");
 }

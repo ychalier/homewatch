@@ -27,12 +27,15 @@
 {% endblock navbar_items %}
 
 {% block navbar_menu %}
-{{ super() }}
 {% if playermode %}
-<span id="button-play-folder" class="menu-item">Lire le dossier</span>
-<span id="button-viewed-folder" class="menu-item">Marquer comme vu</span>
-<span id="button-unviewed-folder" class="menu-item">Marquer comme non vu</span>
+{% if not embedded %}
+<a href="{{ url('player') }}" class="menu-item">Lecteur</a>
 {% endif %}
+<span id="button-play-folder" class="menu-item">Lire ce dossier</span>
+<span id="button-viewed-folder" class="menu-item">Marquer ce dossier comme vu</span>
+<span id="button-unviewed-folder" class="menu-item">Marquer ce dossier comme non vu</span>
+{% endif %}
+{{ super() }}
 {% endblock navbar_menu %}
 
 {% block content %}

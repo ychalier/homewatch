@@ -212,6 +212,8 @@ class LibraryServer:
     
     def view_library(self, request: werkzeug.Request):
         relpath = pathlib.Path(request.path[1:]).relative_to("library/")
+        query = parse_qs(request.url)
+        embedded = query.get("embedded") == "1"
         library_folder = self._get_library_folder(relpath)
         if library_folder is None:
             return None
@@ -219,7 +221,7 @@ class LibraryServer:
             text = json.dumps(library_folder.to_dict())
             return werkzeug.Response(text, status=200, mimetype="application/json")
         template = self.jinja.get_template("library.html")
-        text = template.render(library=library_folder)
+        text = template.render(library=library_folder, embedded=embedded)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:

@@ -20,7 +20,7 @@
 {% block content %}
 <div class="player-layout collapsed">
     <div class="player-library-container">
-        <iframe class="player-library" basesrc="{{ url('library') }}"></iframe>
+        <iframe class="player-library" basesrc="{{ url('library') }}?embedded=1"></iframe>
     </div>
     <div class="player hidden">
         <div class="player-top timebar">
@@ -61,6 +61,7 @@
     <div id="panel-settings" class="panel">
         
         <!--<button id="button-stop" class="button-icon"><i class="icon icon-media-stop"></i></button>-->
+        <a class="button" href="{{ url('library') }}">Bibliothèque</a>
 
         <div class="panel-title">
             <i id="volume-icon" class="panel-title-icon icon icon-volume-max"></i>

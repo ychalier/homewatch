@@ -27,11 +27,11 @@
             <span class="menu-icon"><i class="icon icon-vdots"></i></span>
             <div class="menu-items">
                 {% block navbar_menu %}
-                <a class="menu-item" href="{{ url('about') }}">À propos</a>
                 {% if playermode %}
                 <a class="menu-item" href="{{ url('api', 'close') }}?hooks=0">Éteindre le serveur</a>
-                <a class="menu-item" href="{{ url('api', 'close') }}?hooks=1">Éteindre le serveur et exécuter les scripts</a>
+                <a class="menu-item" href="{{ url('api', 'close') }}?hooks=1">Éteindre et exécuter les scripts</a>
                 {% endif %}
+                <a class="menu-item" href="{{ url('about') }}">À propos</a>
                 {% endblock navbar_menu %}
             </div>
         </div>
