@@ -254,6 +254,7 @@
 #player-volume-wrapper {
     display: flex;
     width: 100%;
+    align-items: center;
 }
 
 #player-volume {

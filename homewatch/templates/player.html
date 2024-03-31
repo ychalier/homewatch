@@ -49,26 +49,28 @@
             </div>
             <div class="player-right">
                 <button class="panel-button" id="button-collapse"><i class="icon icon-expand"></i></button>
-                <button class="panel-button" id="button-volume"><i class="icon icon-volume-max"></i></span>
                 <button class="panel-button" id="button-queue"><i class="icon icon-playlist"></i></span>
                 <button class="panel-button" id="button-settings"><i class="icon icon-settings"></i></span>
             </div>
         </div>
     </div>
     <div class="panel-overlay"></div>
-    <div id="panel-volume" class="panel">
-        <label class="panel-label" for="player-volume">Volume</label>
-        <div id="player-volume-wrapper">
-            <input type="range" min="0" max="100" value="50" id="player-volume" />
-            <span id="player-volume-value">50 %</span>
-        </div>
-    </div>
     <div id="panel-queue" class="panel">
         <div id="queue" class="queue"></div>
     </div>
     <div id="panel-settings" class="panel">
         
         <!--<button id="button-stop" class="button-icon"><i class="icon icon-media-stop"></i></button>-->
+
+        <div class="panel-title">
+            <i id="volume-icon" class="panel-title-icon icon icon-volume-max"></i>
+            <span class="panel-title-label">Volume</span>
+        </div>
+
+        <div id="player-volume-wrapper">
+            <input type="range" min="0" max="100" value="50" id="player-volume" />
+            <span id="player-volume-value">50 %</span>
+        </div>
 
         <div class="panel-title">
             <i class="panel-title-icon icon icon-sleep"></i>

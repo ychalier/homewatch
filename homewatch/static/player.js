@@ -425,8 +425,8 @@ bindButton("button-fastforward", () => {
 
 function displayVolume(volume) {
     document.getElementById("player-volume-value").textContent = `${volume} %`;
-    const icon = document.querySelector("#button-volume .icon");
-    icon.className = "icon";
+    const icon = document.querySelector("#volume-icon");
+    icon.className = "panel-title-icon icon";
     if (volume >= 90) {
         icon.classList.add("icon-volume-max");
     } else if (volume >= 50) {
@@ -535,7 +535,6 @@ document.querySelector(".panel-overlay").addEventListener("click", () => {
     });
 });
 
-bindPanel("button-volume", "panel-volume");
 bindPanel("button-queue", "panel-queue");
 bindPanel("button-settings", "panel-settings");
 
