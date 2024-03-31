@@ -719,3 +719,6 @@ class Library(dict[str, LibraryFolder]):
         if folder is None:
             return None
         return folder.get_playlist(path.name)
+
+    def get_subfolder(self, parent: LibraryFolder, subfolder: Folder) -> LibraryFolder:
+        return self[(parent.path / subfolder.basename).as_posix()]

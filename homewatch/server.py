@@ -276,15 +276,7 @@ class PlayerServer(LibraryServer):
             library_folder = self.theater.library[folder_path.as_posix()]
         except KeyError:
             return None
-        for media in library_folder.medias:
-            media.progress = self.theater.history[media]
-        for subfolder in library_folder.subfolders:
-            progress, duration = 0, 0
-            for media in self.theater.library[(folder_path / subfolder.basename).as_posix()].medias:
-                progress += self.theater.history[media]
-                duration += int(media.duration * 1000)
-            subfolder.progress = progress
-            subfolder.duration = duration
+        self.theater.set_folder_progress(library_folder)
         return library_folder
     
     def view_player(self, request: werkzeug.Request):

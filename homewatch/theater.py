@@ -5,7 +5,7 @@ import time
 
 from .player import Player, PlayerObserver
 from .history import History
-from .library import Library
+from .library import Library, LibraryFolder
 from .queue import Queue, StartOfQueueException, EndOfQueueException
 
 
@@ -87,3 +87,24 @@ class Theater(PlayerObserver):
             self.load_current()
         except EndOfQueueException:
             pass
+    
+    def get_folder_progress(self, library_folder: LibraryFolder) -> tuple[int, int]:
+        progress, duration = 0, 0
+        for media in library_folder.medias:
+            progress += self.history[media]
+            duration += int(media.duration * 1000)
+        for subfolder in library_folder.subfolders:
+            library_subfolder = self.library.get_subfolder(library_folder, subfolder)
+            subprogress, subduration = self.get_folder_progress(library_subfolder)
+            progress += subprogress
+            duration += subduration
+        return progress, duration
+        
+    def set_folder_progress(self, library_folder: LibraryFolder):
+        for media in library_folder.medias:
+            media.progress = self.history[media]
+        for subfolder in library_folder.subfolders:
+            progress, duration = self.get_folder_progress(self.library.get_subfolder(library_folder, subfolder))
+            subfolder.progress = progress
+            subfolder.duration = duration
+
