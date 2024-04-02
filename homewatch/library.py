@@ -171,7 +171,7 @@ class LibraryEntry:
 
 class Media(LibraryEntry):
 
-    PATTERN_DIRECTOR = re.compile(r'^.*?( \((?:([^\(]*), )?(\d{4})\))?$')
+    PATTERN_DIRECTOR = re.compile(r'\(([^\(]+)\) *$')
     PATTERN_EPISODE = re.compile(r'^((\d+)\. |S(\d+)E(\d+) (?:- )?)')
 
     def __init__(self, folder: "LibraryFolder", basename: str, duration: float,
@@ -198,10 +198,17 @@ class Media(LibraryEntry):
         self.ext = split[1].lower()
         remainder = self.name
         rematch = self.PATTERN_DIRECTOR.search(remainder)
-        if rematch is not None and rematch.group(1) is not None:
-            remainder = remainder.replace(rematch.group(1), "").strip()
-            self.director = rematch.group(2)
-            self.year = int(rematch.group(3))
+        if rematch is not None:
+            remainder = remainder.replace(rematch.group(0), "").strip()
+            elements = rematch.group(1).split(", ")
+            for i, element in enumerate(elements):
+                if re.match(r"^\d{4}$", element):
+                    self.year = int(element)
+                    elements.pop(i)
+                    break
+            elements = [s for s in elements if s]
+            if elements:
+                self.director = ", ".join(elements)
         rematch = self.PATTERN_EPISODE.search(remainder)
         if rematch is not None and rematch.group(1) is not None:
             remainder = remainder.replace(rematch.group(1), "").strip()
