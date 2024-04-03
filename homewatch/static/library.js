@@ -48,6 +48,7 @@ function showMediaDetails(mediaElement) {
     detailsElement.querySelector(".title").innerHTML = mediaElement.querySelector(".title").innerHTML;
     detailsElement.querySelector(".subtitle").innerHTML = mediaElement.querySelector(".subtitle").innerHTML;
     detailsElement.querySelector(".media-details-url").href = mediaElement.getAttribute("href");
+    detailsElement.querySelector(".media-details-cast").href = CAST_URL + mediaElement.getAttribute("href");
     if (PLAYERMODE) {
         const path = mediaElement.getAttribute("path");
         detailsElement.querySelector(".media-details-play").addEventListener("click", () => {
@@ -139,6 +140,8 @@ if (PLAYERMODE) {
 const FILTER_UNSEEN = 0;
 const FILTER_LANGUAGE = 1;
 const FILTER_SHORT = 2;
+const FILTER_CHROMECAST = 3;
+const FILTER_HTML5 = 4;
 const FILTERS = [];
 
 function toggleFilter(filter) {
@@ -151,7 +154,7 @@ function toggleFilter(filter) {
 }
 
 function updateFilters() {
-    for (let filter = 0; filter <= 2; filter++) {
+    for (let filter = 0; filter <= 4; filter++) {
         const domFilterElement = document.querySelector(`.library-filter[filter="${filter}"]`);
         if (domFilterElement == null) continue;
         if (FILTERS.includes(filter)) {
@@ -173,6 +176,14 @@ function updateFilters() {
         if (FILTERS.includes(FILTER_SHORT)) {
             const durationMs = parseFloat(media.getAttribute("duration"));
             shouldBeSeen = shouldBeSeen && (durationMs < 20 * 60 * 1000);
+        }
+        if (FILTERS.includes(FILTER_CHROMECAST)) {
+            const isCastabale = media.querySelector(".media-badge-chromecast") != null;
+            shouldBeSeen = shouldBeSeen && isCastabale;
+        }
+        if (FILTERS.includes(FILTER_HTML5)) {
+            const isHtml5 = media.querySelector(".media-badge-html5") != null;
+            shouldBeSeen = shouldBeSeen && isHtml5;
         }
         if (shouldBeSeen) {
             media.parentElement.classList.remove("hidden");

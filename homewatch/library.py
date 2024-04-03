@@ -253,6 +253,12 @@ class Media(LibraryEntry):
     @property
     def is_visible_in_browser(self) -> bool:
         return self.ext in [".mp4", ".webm", ".ogg"]
+    
+    @property
+    def is_castable(self) -> bool:
+        # TODO: Properly check for codecs
+        # See https://developers.google.com/cast/docs/media
+        return self.ext in [".mp4"]
 
     def to_dict(self) -> dict:
         return {
