@@ -203,6 +203,11 @@ class LibraryServer:
             self._get_landing_redirection_target())
         })
     
+    def view_player(self, request: werkzeug.Request) -> werkzeug.Response:
+        return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
+            "Location": urljoin( request.host_url + settings.HOME_URL, "library")
+        })
+    
     def view_basic(self, template_name, **kwargs):
         template = self.jinja.get_template(template_name)
         text = template.render(**kwargs)
@@ -240,6 +245,8 @@ class LibraryServer:
                 text = json.dumps(hierarchy.to_dict())
                 return werkzeug.Response(text, status=200, mimetype="application/json")
             return self.view_library(request)
+        elif str(path) == "player":
+            return self.view_player(request)
         return None
 
     def wsgi_app(self, environ, start_response):

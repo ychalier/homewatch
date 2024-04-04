@@ -93,8 +93,8 @@
                         {% if playermode %}<progress class="library-progress" min="0" value="{{ [m.progress, m.duration_ms] | min }}" max="{{ m.duration_ms }}"></progress>{% endif %}
                     </div>
                     <div class="media-badges">
-                        {% if m.is_visible_in_browser and not playermode %}<span class="media-badge media-badge-html5"><i class="icon icon-webvideo"></i></span>{% endif %}
-                        {% if enable_chromecast and m.is_castable %}<span class="media-badge media-badge-chromecast"><i class="icon icon-chromecast"></i></span>{% endif %}
+                        {% if m.is_visible_in_browser and not playermode %}<span class="media-badge media-badge-icon media-badge-html5"><i class="icon icon-webvideo"></i></span>{% endif %}
+                        {% if enable_chromecast and m.is_castable %}<span class="media-badge media-badge-icon media-badge-chromecast"><i class="icon icon-chromecast"></i></span>{% endif %}
                         {% if m.has_french %}<span class="media-badge media-badge-language">🇫🇷</span>{% endif %}
                     </div>
                 </div>
