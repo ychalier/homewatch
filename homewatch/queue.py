@@ -63,7 +63,7 @@ class Queue:
 
     def add(self, elements: list[Media], first_index: int | None = 0,
             clear_first: bool = True):
-        logger.info("Adding %d elements, first_index is %d, clear_first is %s",
+        logger.info("Adding %d elements, first_index is %s, clear_first is %s",
                     len(elements), first_index, clear_first)
         if clear_first:
             self.elements = []

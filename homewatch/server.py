@@ -186,7 +186,8 @@ class LibraryServer:
             static=lambda *x: urljoin(settings.STATIC_URL, *x),
             media=lambda *x: urljoin(settings.MEDIA_URL, *x),
             media_url=settings.MEDIA_URL,
-            playermode=settings.SERVER_MODE == "player"
+            playermode=settings.SERVER_MODE == "player",
+            enable_chromecast=settings.CHROMECAST_GENERATION is not None,
         )
     
     def _get_landing_redirection_target(self) -> str:
@@ -200,6 +201,11 @@ class LibraryServer:
             "Location": urljoin(
             request.host_url + settings.HOME_URL,
             self._get_landing_redirection_target())
+        })
+    
+    def view_player(self, request: werkzeug.Request) -> werkzeug.Response:
+        return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
+            "Location": urljoin( request.host_url + settings.HOME_URL, "library")
         })
     
     def view_basic(self, template_name, **kwargs):
@@ -239,6 +245,8 @@ class LibraryServer:
                 text = json.dumps(hierarchy.to_dict())
                 return werkzeug.Response(text, status=200, mimetype="application/json")
             return self.view_library(request)
+        elif str(path) == "player":
+            return self.view_player(request)
         return None
 
     def wsgi_app(self, environ, start_response):
