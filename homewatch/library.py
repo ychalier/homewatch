@@ -449,7 +449,10 @@ class Media(LibraryEntry):
                     # consider vertical videos rotated
                     media.resolution = min(stream.get("width", 0), stream.get("height", 0))
                     fps = tuple(map(float, stream.get("avg_frame_rate", "0/1").split("/")))
-                    media.framerate = round(fps[0] / fps[1])
+                    if fps[1] == 0:
+                        media.framerate = round(fps[0])
+                    else:
+                        media.framerate = round(fps[0] / fps[1])
                 case "audio":
                     media.audio_codec = stream.get("codec_name")
                     media.audio_profile = stream.get("profile")
