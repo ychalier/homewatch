@@ -245,7 +245,9 @@ class Media(LibraryEntry):
     def duration_display(self) -> str:
         hours = int(self.duration / 3600)
         minutes = int((self.duration - 3600 * hours) / 60)
-        if hours == 0:
+        if hours == 0 and minutes == 0:
+            return f"{round(self.duration)} s"
+        elif hours == 0:
             return f"{minutes} min"
         else:
             return f"{hours}h{minutes:02d}"

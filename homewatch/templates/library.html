@@ -91,7 +91,6 @@
                             {% if m.director %}<span class="subtitle-item">{{ m.director }}</span>{% endif %}
                             {% if m.year %}<span class="subtitle-item">{{ m.year }}</span>{% endif %}
                             <span class="subtitle-item">{{ m.duration_display }}</span>
-                            <span class="subtitle-item">{{ m.resolution }}p {{ m.framerate }}fps</span>
                         </div>
                         <div class="title">{{ m.title }}</div>
                         {% if playermode %}<progress class="library-progress" min="0" value="{{ [m.progress, m.duration_ms] | min }}" max="{{ m.duration_ms }}"></progress>{% endif %}
