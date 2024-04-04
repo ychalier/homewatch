@@ -48,7 +48,12 @@ function showMediaDetails(mediaElement) {
     detailsElement.querySelector(".title").innerHTML = mediaElement.querySelector(".title").innerHTML;
     detailsElement.querySelector(".subtitle").innerHTML = mediaElement.querySelector(".subtitle").innerHTML;
     detailsElement.querySelector(".media-details-url").href = mediaElement.getAttribute("href");
-    detailsElement.querySelector(".media-details-cast").href = CAST_URL + mediaElement.getAttribute("href");
+    if (ENABLE_CHROMECAST) {
+        detailsElement.querySelector(".media-details-cast").href = CAST_URL + "?" + new URLSearchParams({
+            url: "http://" + window.location.host + mediaElement.getAttribute("href"),
+            type: mediaElement.getAttribute("type"),
+        }).toString();
+    }
     if (PLAYERMODE) {
         const path = mediaElement.getAttribute("path");
         detailsElement.querySelector(".media-details-play").addEventListener("click", () => {

@@ -186,7 +186,8 @@ class LibraryServer:
             static=lambda *x: urljoin(settings.STATIC_URL, *x),
             media=lambda *x: urljoin(settings.MEDIA_URL, *x),
             media_url=settings.MEDIA_URL,
-            playermode=settings.SERVER_MODE == "player"
+            playermode=settings.SERVER_MODE == "player",
+            enable_chromecast=settings.CHROMECAST_GENERATION is not None,
         )
     
     def _get_landing_redirection_target(self) -> str:
@@ -209,12 +210,6 @@ class LibraryServer:
     
     def view_about(self, request: werkzeug.Request):
         return self.view_basic("about.html")
-    
-    def view_cast(self, request: werkzeug.Request) -> werkzeug.Response:
-        relpath = pathlib.Path(request.path[1:]).relative_to("cast/")
-        template = self.jinja.get_template("cast.html")
-        text = template.render()
-        return werkzeug.Response(text, status=200, mimetype="text/html")
     
     def view_library(self, request: werkzeug.Request):
         relpath = pathlib.Path(request.path[1:]).relative_to("library/")
@@ -239,8 +234,6 @@ class LibraryServer:
             return werkzeug.Response("YES", status=200, mimetype="text/plain")
         elif str(path) == "about":
             return self.view_about(request)
-        elif path.is_relative_to("cast/"):
-            return self.view_cast(request)
         elif path.is_relative_to("library/"):
             if str(path.relative_to("library/")) == "hierarchy.json":
                 hierarchy = Hierarchy.from_settings()

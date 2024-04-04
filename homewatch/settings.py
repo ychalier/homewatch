@@ -3,6 +3,7 @@ Most imporant settings are LIBRARY_MODE, LIBRARY_ROOT, SERVER_MODE, and
 VLC_DLL_DIRECTORY on Windows.
 """
 
+import enum
 import os
 
 # ====================== #
@@ -34,6 +35,22 @@ HIDDEN_DIRECTORY = ".homewatch"
 # Generated thumbnail dimensions
 THUMBNAIL_WIDTH = 200
 THUMBNAIL_HEIGHT = 300
+
+# Chromecast settings, use to determine if a media can be casted or not.
+# You must either specify None to disable Chromecast support, or one of the
+# generation enumerated below:
+
+@enum.unique
+class ChromecastGeneration(enum.Enum):
+    GEN1 = 1
+    GEN2 = 2
+    GEN3 = 3
+    ULTRA = 4
+    GOOGLETV = 5
+    NESTHUB = 6
+    NESTHUBMAX = 7
+
+CHROMECAST_GENERATION = None
 
 # =============== #
 # Server settings #

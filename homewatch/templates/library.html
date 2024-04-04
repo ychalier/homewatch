@@ -14,7 +14,8 @@
     const FOLDER = "{{ url(library.path)[1:] }}";
     const PLAYERMODE = {{ playermode | lower }};
     const API_URL = "{{ url('api') }}";
-    const CAST_URL = "{{ url('cast' )}}";
+    const CAST_URL = "https://chalier.fr/cast/cast.html";
+    const ENABLE_CHROMECAST = {{ enable_chromecast | lower }};
 </script>
 {% endblock scripts %}
 
@@ -70,14 +71,14 @@
     {% if library.medias %}
     <div class="library-section library-filters">
         {% if playermode %}<div class="library-filter" filter="0">Non vu</div>{% endif %}
-        <div class="library-filter" filter="3"><i class="icon icon-chromecast"></i></div>
+        {% if enable_chromecast %}<div class="library-filter" filter="3"><i class="icon icon-chromecast"></i></div>{% endif %}
         {% if not playermode %}<div class="library-filter" filter="4"><i class="icon icon-webvideo"></i></div>{% endif %}
         <div class="library-filter" filter="1">🇫🇷</div>
     </div>
     <div class="library-section library-medias">
         {% for m in library.medias %}
             <div class="media-wrapper">
-                <div class="media" duration="{{ m.duration_ms }}" path="{{ url(library.path, m.basename)[1:] }}" href="{{ media(library.path, m.basename) }}">
+                <div class="media" type='{{ m.media_type_string }}' duration="{{ m.duration_ms }}" path="{{ url(library.path, m.basename)[1:] }}" href="{{ media(library.path, m.basename) }}">
                     <div class="media-body">
                         <img class="media-poster" loading="lazy" src="{{ media(library.path, m.thumbnail) }}" />
                         <div class="media-overlay"></div>
@@ -90,13 +91,14 @@
                             {% if m.director %}<span class="subtitle-item">{{ m.director }}</span>{% endif %}
                             {% if m.year %}<span class="subtitle-item">{{ m.year }}</span>{% endif %}
                             <span class="subtitle-item">{{ m.duration_display }}</span>
+                            <span class="subtitle-item">{{ m.resolution }}p {{ m.framerate }}fps</span>
                         </div>
                         <div class="title">{{ m.title }}</div>
                         {% if playermode %}<progress class="library-progress" min="0" value="{{ [m.progress, m.duration_ms] | min }}" max="{{ m.duration_ms }}"></progress>{% endif %}
                     </div>
                     <div class="media-badges">
                         {% if m.is_visible_in_browser and not playermode %}<span class="media-badge media-badge-html5"><i class="icon icon-webvideo"></i></span>{% endif %}
-                        {% if m.is_castable %}<span class="media-badge media-badge-chromecast"><i class="icon icon-chromecast"></i></span>{% endif %}
+                        {% if enable_chromecast and m.is_castable %}<span class="media-badge media-badge-chromecast"><i class="icon icon-chromecast"></i></span>{% endif %}
                         {% if m.has_french %}<span class="media-badge media-badge-language">🇫🇷</span>{% endif %}
                     </div>
                 </div>
@@ -131,8 +133,10 @@
                     <button class="media-details-unviewed">Marquer comme non vu</button>
                     {% endif %}
                     <a class="button media-details-url">Lien</a>
+                    {% if enable_chromecast %}
                      
                     <a class="button media-details-cast">Cast</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

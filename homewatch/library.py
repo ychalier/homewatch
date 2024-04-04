@@ -175,10 +175,21 @@ class Media(LibraryEntry):
     PATTERN_EPISODE = re.compile(r'^((\d+)\. |S(\d+)E(\d+) (?:- )?)')
 
     def __init__(self, folder: "LibraryFolder", basename: str, duration: float,
-                 thumbnail: str = None, audio_sources: list[AudioSource] = None,
+                 video_codec: str = None, video_profile: int = None,
+                 video_level: str = None, audio_codec: str = None,
+                 audio_profile: str = None, resolution: int = None,
+                 framerate: int = None, thumbnail: str = None,
+                 audio_sources: list[AudioSource] = None,
                  subtitle_sources: list[SubtitleSource] = None):
         LibraryEntry.__init__(self, folder, basename)
         self.duration = duration
+        self.video_codec = video_codec
+        self.video_profile = video_profile
+        self.video_level = video_level
+        self.audio_codec = audio_codec
+        self.audio_profile = audio_profile
+        self.resolution = resolution
+        self.framerate = framerate
         self.thumbnail = thumbnail
         self.audio_sources = audio_sources if audio_sources is not None else []
         self.subtitle_sources = subtitle_sources if subtitle_sources is not None else []
@@ -256,14 +267,112 @@ class Media(LibraryEntry):
     
     @property
     def is_castable(self) -> bool:
-        # TODO: Properly check for codecs
-        # See https://developers.google.com/cast/docs/media
-        return self.ext in [".mp4"]
+        """
+        @see https://developers.google.com/cast/docs/media
+        """
+        if settings.CHROMECAST_GENERATION is None:
+            return False
+        if self.audio_codec is not None and not (
+            self.audio_codec in {"flac", "aac", "mp3", "opus", "vorbis", "wav", "webm"}):
+            return False
+        match settings.CHROMECAST_GENERATION:
+            case settings.ChromecastGeneration.GEN1 | settings.ChromecastGeneration.GEN2:
+                return (self.video_codec == "h264" and self.video_level <= 41)\
+                    or (self.video_codec == "vp8" and (
+                        (self.resolution <= 720 and self.framerate <= 60)
+                        or
+                        (self.resolution <= 1080 and self.framerate <= 30)
+                    ))
+            case settings.ChromecastGeneration.GEN3:
+                return (self.video_codec == "h264" and self.video_level <= 42)\
+                    or (self.video_codec == "vp8" and (
+                        (self.resolution <= 720 and self.framerate <= 60)
+                        or
+                        (self.resolution <= 1080 and self.framerate <= 30)
+                    ))
+            case settings.ChromecastGeneration.ULTRA:
+                return (self.video_codec == "h264" and self.video_level <= 42)\
+                    or (self.video_codec == "vp8" and self.resolution <= 2160 and self.framerate <= 30)\
+                    or (self.video_codec == "hevc" and self.video_level <= 51)\
+                    or (self.video_codec == "vp9" and self.resolution <= 2160 and self.framerate <= 60)
+            case settings.ChromecastGeneration.GOOGLETV:
+                return (self.video_codec == "h264" and self.video_level <= 51)\
+                    or (self.video_codec == "hevc" and self.video_level <= 51)\
+                    or (self.video_codec == "vp9" and self.resolution <= 2160 and self.framerate <= 60)
+            case settings.ChromecastGeneration.NESTHUB:
+                return (self.video_codec == "h264" and self.video_level <= 41)\
+                    or (self.video_codec == "vp9" and self.resolution <= 720 and self.framerate <= 60)
+            case settings.ChromecastGeneration.NESTHUBMAX:
+                return (self.video_codec == "h264" and self.video_level <= 41)\
+                    or (self.video_codec == "vp9" and self.resolution <= 720 and self.framerate <= 30)
+        return False
+
+    @property
+    def media_type_string(self) -> str:
+        """
+        @see https://developers.google.com/cast/docs/media
+        """
+        container = None
+        match self.ext:
+            case ".mp4":
+                container = "video/mp4"
+            case ".webm":
+                container = "video/webm"
+            case ".mkv":
+                container = "video/x-matroska"
+            case _:
+                container = "video/mp4"
+        video_codec = None
+        match self.video_codec:
+            case "h264":
+                if self.video_level == 30 and self.video_profile == "Baseline":
+                    video_codec = "avc1.42E01E"
+                elif self.video_level == 31 and self.video_profile == "Baseline":
+                    video_codec = "avc1.42E01F"
+                elif self.video_level == 31 and self.video_profile == "Main":
+                    video_codec = "avc1.4D401F"
+                elif self.video_level == 40 and self.video_profile == "Main":
+                    video_codec = "avc1.4D4028"
+                elif self.video_level == 40 and self.video_profile == "High":
+                    video_codec = "avc1.640028"
+                elif self.video_level == 41 and self.video_profile == "High":
+                    video_codec = "avc1.640029"
+                elif self.video_level == 42 and self.video_profile == "High":
+                    video_codec = "avc1.64002A"
+            case "vp8" | "vp9":
+                video_codec = self.video_codec
+        if video_codec is None:
+            video_codec = self.video_codec
+        audio_codec = None
+        match self.audio_codec:
+            case "aac":
+                if self.audio_profile == "HE":
+                    audio_codec = "mp4a.40.5"
+                elif self.audio_profile == "LC":
+                    audio_codec = "mp4a.40.2"
+            case "mp3":
+                audio_codec = "mp4a.69"
+        if audio_codec is None:
+            audio_codec = self.audio_codec
+        if video_codec is None and audio_codec is None:
+            return container
+        if audio_codec is None:
+            return container + f'; codecs="{video_codec}"'
+        if video_codec is None:
+            return container + f'; codecs="{audio_codec}"'
+        return container + f'; codecs="{video_codec}, {audio_codec}"'
 
     def to_dict(self) -> dict:
         return {
             "basename": self.basename,
             "duration": self.duration,
+            "video_codec": self.video_codec,
+            "video_profile": self.video_profile,
+            "video_level": self.video_level,
+            "audio_codec": self.audio_codec,
+            "audio_profile": self.audio_profile,
+            "resolution": self.resolution,
+            "framerate": self.framerate,
             "thumbnail": str(self.thumbnail),
             "audio_sources": [s.to_dict() for s in self.audio_sources],
             "subtitle_sources": [s.to_dict() for s in self.subtitle_sources]
@@ -314,6 +423,13 @@ class Media(LibraryEntry):
             folder,
             d["basename"],
             d["duration"],
+            d["video_codec"],
+            d["video_profile"],
+            d["video_level"],
+            d["audio_codec"],
+            d["audio_profile"],
+            d["resolution"],
+            d["framerate"],
             d["thumbnail"],
             [AudioSource.from_dict(s) for s in d["audio_sources"]],
             [SubtitleSource.from_dict(s) for s in d["subtitle_sources"]]
@@ -326,7 +442,17 @@ class Media(LibraryEntry):
         media = cls(folder, path.name, float(probe["format"]["duration"]))
         for stream in probe["streams"]:
             match stream["codec_type"]:
+                case "video":
+                    media.video_codec = stream.get("codec_name")
+                    media.video_profile = stream.get("profile")
+                    media.video_level = int(stream.get("level", 0))
+                    # consider vertical videos rotated
+                    media.resolution = min(stream.get("width", 0), stream.get("height", 0))
+                    fps = tuple(map(float, stream.get("avg_frame_rate", "1/0").split("/")))
+                    media.framerate = round(fps[0] / fps[1])
                 case "audio":
+                    media.audio_codec = stream.get("codec_name")
+                    media.audio_profile = stream.get("profile")
                     tags = stream.get("tags", {})
                     media.audio_sources.append(AudioSource(
                         stream["index"],
