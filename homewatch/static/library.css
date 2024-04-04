@@ -11,7 +11,7 @@
 .library-section {
     box-sizing: border-box;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: flex-start;
     flex-wrap: wrap;
     padding: 0 1rem;
@@ -20,6 +20,7 @@
 
 .library-element {
     position: relative;
+    margin-right: .4rem;
     margin-bottom: .4rem;
     border-radius: .4rem;
     background: #101010;
@@ -42,6 +43,14 @@
 .library-filters {
     flex-direction: row;
     flex-wrap: wrap;
+}
+
+.library-filter-label {
+    margin: 0 .2rem .2rem 0;
+    border-radius: .4rem;
+    padding: .4rem .4rem .4rem 0;
+    user-select: none;
+    color: #787878;
 }
 
 .library-filter {
@@ -209,18 +218,6 @@
  */
 
 @media (min-width: 500px) {
-    .library-section {
-        flex-direction: row;
-    }
-
-    .library-element {
-        margin-right: .4rem;
-    }
-
-    .library-element:last-child {
-        margin-right: 0;
-    }
-
     .media-wrapper {
         width: 11.9em;
     }

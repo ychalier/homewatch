@@ -42,7 +42,7 @@
 
 {% block content %}
 <div class="library">
-    {% if library.subfolders %}
+    {% if library.subfolders or library.playlists %}
     <div class="library-section">
         {% for subfolder in library.subfolders %}
         <a class="library-element subfolder" href="{{ url('library', library.path, subfolder.basename) }}">
@@ -57,10 +57,6 @@
             {% endif %}
         </a>
         {% endfor %}
-    </div>
-    {% endif %}
-    {% if library.playlists %}
-    <div class="library-section">
         {% for playlist in library.playlists %}
         <div class="library-element playlist" path="{{ url(library.path, playlist.basename)[1:] }}">
             <div class="title">{{ playlist.title }} ({{ playlist.size }})</div>
@@ -70,6 +66,7 @@
     {% endif %}
     {% if library.medias %}
     <div class="library-section library-filters">
+        <span class="library-filter-label">Filtres</span>
         {% if playermode %}<div class="library-filter" filter="0">Non vu</div>{% endif %}
         {% if enable_chromecast %}<div class="library-filter" filter="3"><i class="icon icon-chromecast"></i></div>{% endif %}
         {% if not playermode %}<div class="library-filter" filter="4"><i class="icon icon-webvideo"></i></div>{% endif %}
