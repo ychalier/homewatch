@@ -6,7 +6,7 @@ The idea is to have media files stored on a computer or a remote server, and use
 a remote device (namely, a phone) to browse the library and play some files. The
 main use case is for watching movies without leaving the bed or the sofa.
 
-## Features
+## Features
 
 - Browse a local or remote media library
 - Control a remote VLC player
