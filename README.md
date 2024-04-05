@@ -6,6 +6,18 @@ The idea is to have media files stored on a computer or a remote server, and use
 a remote device (namely, a phone) to browse the library and play some files. The
 main use case is for watching movies without leaving the bed or the sofa.
 
+## Features
+
+- Browse a local or remote media library
+- Control a remote VLC player
+- Sleep mode with modular hooks
+- Keep a viewing history
+- Keep playlists, play them in order or shuffled
+- Integrate with Google Chromecast
+- Linux and Windows support
+- Self-hosted: no data collection, no subscription plan, total control
+- Lightweight: the media library is based on the existing file system
+
 ## Getting Started
 
 ### Hardware

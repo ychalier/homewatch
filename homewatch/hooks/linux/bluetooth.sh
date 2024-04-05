@@ -1,6 +1,16 @@
 #!/bin/bash
+
 # Get MAC address using the `bt-device -l` command from the bluez-tools package
+devicemac=""
+
+if [[ -z "$devicemac" ]]; then
+    echo "Please provide a MAC address by editing hooks/linux/bluetooth.sh"
+    exit 1
+fi
+
+# Find out which audio source to raise the volume of with `pacmd list-sinks`
+sinkname="@DEFAULT_SINK@"
+
 bluetoothctl power on
-bluetoothctl connect 00:0C:8A:F1:BD:0F
-pactl set-sink-volume alsa_output.pci-0000_00_1f.3.analog-stereo 100%
-pactl set-sink-volume bluez_sink.00_0C_8A_F1_BD_0F.a2dp_sink 100%
+bluetoothctl connect "$devicemac"
+pactl set-sink-volume "$sinkname" 100%
