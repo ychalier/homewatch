@@ -188,6 +188,7 @@ class LibraryServer:
             media_url=settings.MEDIA_URL,
             playermode=settings.SERVER_MODE == "player",
             enable_chromecast=settings.CHROMECAST_GENERATION is not None,
+            preferred_media_language_flag=settings.PREFERRED_MEDIA_LANGUAGE_FLAG,
         )
     
     def _get_landing_redirection_target(self) -> str:

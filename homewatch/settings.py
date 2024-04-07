@@ -18,7 +18,7 @@ LIBRARY_MODE = "local"
 # root folder containing media files. If the library mode is 'remote', this
 # should be the URL to the remote Homewatch server, ending with '/library/'
 # (the trailing slash is important).
-LIBRARY_ROOT = os.path.expanduser("~/Videos")
+LIBRARY_ROOT = os.path.expanduser("~/Vidéos")
 
 # Set of media file extensions (anything else will be ignored)
 VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm", ".wmv"}
@@ -90,9 +90,18 @@ PLAYER_REWIND_SECONDS = 30
 PLAYER_DEFAULT_VOLUME = 50
 PLAYER_DEFAULT_ASPECT_RATIO = None
 
-# If a media file is available in one of those languages, the player will try
-# to automatically select it. It first tries to set the subtitle track, to keep
-# the original audio, but then tries setting the audio track if subtitles are
-# not available in any preferred language. Note that this relies on audio and
-# subtitle track metadata, which is often incomplete. 
-PREFERRED_LANGUAGES = ["fr", "fre", "fra"]
+# Preferred media language, as a 2 letters ISO 639 code. Supported languages are
+# reported below. This is used to provide library filtering and automatic
+# subtitle and audio track selection.
+PREFERRED_MEDIA_LANGUAGE = "fr"
+
+LANGUAGE_CODES = {
+    "fr": {"fr", "fre", "fra", "french"},
+    "en": {"en", "eng", "english"},
+}
+LANGUAGE_FLAGS = {
+    "fr": "🇫🇷",
+    "en": "🇬🇧",
+}
+PREFERRED_MEDIA_LANGUAGE_CODES = LANGUAGE_CODES[PREFERRED_MEDIA_LANGUAGE]
+PREFERRED_MEDIA_LANGUAGE_FLAG = LANGUAGE_FLAGS[PREFERRED_MEDIA_LANGUAGE]

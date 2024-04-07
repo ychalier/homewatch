@@ -253,9 +253,9 @@ class Media(LibraryEntry):
             return f"{hours}h{minutes:02d}"
         
     @property
-    def has_french(self) -> bool:
+    def has_preferred_language(self) -> bool:
         for source in self.audio_sources + self.subtitle_sources:
-            if source.language in ["fr", "fre", "fra"]:
+            if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
                 return True
         return False
     

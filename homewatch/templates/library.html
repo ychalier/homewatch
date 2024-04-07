@@ -70,7 +70,7 @@
         {% if playermode %}<div class="library-filter" filter="0">Non vu</div>{% endif %}
         {% if enable_chromecast %}<div class="library-filter" filter="3"><i class="icon icon-chromecast"></i></div>{% endif %}
         {% if not playermode %}<div class="library-filter" filter="4"><i class="icon icon-webvideo"></i></div>{% endif %}
-        <div class="library-filter" filter="1">🇫🇷</div>
+        <div class="library-filter" filter="1">{{ preferred_media_language_flag }}</div>
     </div>
     <div class="library-section library-medias">
         {% for m in library.medias %}
@@ -95,7 +95,7 @@
                     <div class="media-badges">
                         {% if m.is_visible_in_browser and not playermode %}<span class="media-badge media-badge-icon media-badge-html5"><i class="icon icon-webvideo"></i></span>{% endif %}
                         {% if enable_chromecast and m.is_castable %}<span class="media-badge media-badge-icon media-badge-chromecast"><i class="icon icon-chromecast"></i></span>{% endif %}
-                        {% if m.has_french %}<span class="media-badge media-badge-language">🇫🇷</span>{% endif %}
+                        {% if m.has_preferred_language %}<span class="media-badge media-badge-language">{{ preferred_media_language_flag }}</span>{% endif %}
                     </div>
                 </div>
             </div>

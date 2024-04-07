@@ -159,13 +159,13 @@ class Player:
         self.selected_audio_source = 0 if self.media.audio_sources else None
         self.selected_subtitle_source = None
         for i, source in enumerate(self.media.subtitle_sources):
-            if source.language in settings.PREFERRED_LANGUAGES:
+            if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
                 self.selected_subtitle_source = i
                 found = True
                 break
         if not found:
             for i, source in enumerate(self.media.audio_sources):
-                 if source.language in settings.PREFERRED_LANGUAGES:
+                 if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
                     self.selected_audio_source = i
                     break
 
