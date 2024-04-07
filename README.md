@@ -44,7 +44,10 @@ instructions below.
 
 ### Prerequisite
 
-You'll need [Python 3](https://www.python.org/) and [VLC](https://www.videolan.org/vlc/).
+You'll need [Python 3](https://www.python.org/) and:
+
+- [FFmpeg](https://ffmpeg.org/) on the media server,
+- [VLC](https://www.videolan.org/vlc/) on the video player.
 
 ### Installation
 
@@ -118,6 +121,8 @@ On the phone, go to http://192.168.1.69:8000 (or scan the QR code), and voilà!
 - [tqdm](https://pypi.org/project/tqdm/) - Progress display
 - [websockets](https://pypi.org/project/websockets/) - [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) API implementation for Python
 - [werkzeug](https://pypi.org/project/Werkzeug/) - [WSGI](https://wsgi.readthedocs.io/en/latest/) web application library
+
+Chromecast integration is adapted from [maxwellito/apachecast](https://github.com/maxwellito/apachecast).
 
 ## Contributing
 
