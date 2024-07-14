@@ -100,21 +100,21 @@ function showMediaDetails(mediaElement) {
     document.body.appendChild(detailsElement);
 }
 
-window.addEventListener("contextmenu", (event) => {
-    event.preventDefault();
-});
+const preventEventDefault = event => event.preventDefault();
 
 for (const mediaElement of document.querySelectorAll(".media")) {
-    mediaElement.addEventListener("mouseup", () => {
-        showMediaDetails(mediaElement);
+    mediaElement.addEventListener("mouseup", (event) => {
+        if (event.button == 0) showMediaDetails(mediaElement);
     });
     mediaElement.addEventListener("touchstart", () => {
+        mediaElement.addEventListener("contextmenu", preventEventDefault);
         pressTimer = window.setTimeout(() => {
             showMediaDetails(mediaElement);
         }, DEFAULT_LONG_PRESS_TIMEOUT);
         return false; 
     });
     mediaElement.addEventListener("touchend", () => {
+        mediaElement.removeEventListener("contextmenu", preventEventDefault);
         clearTimeout(pressTimer);
     });
 }
