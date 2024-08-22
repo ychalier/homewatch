@@ -43,22 +43,24 @@
 .library-filters {
     flex-direction: row;
     flex-wrap: wrap;
+    gap: .4rem;
+    align-items: center;
 }
 
 .library-filter-label {
-    margin: 0 .2rem .2rem 0;
     border-radius: .4rem;
-    padding: .4rem .4rem .4rem 0;
+    padding: .4rem 0;
     user-select: none;
     color: #787878;
 }
 
 .library-sort,
 .library-filter {
-    margin: 0 .2rem .2rem 0;
     border-radius: .4rem;
+    border: none;
     background: #101010;
-    padding: .4rem .6rem;
+    padding: .4rem;
+    margin: 0;
     cursor: pointer;
     user-select: none;
 }

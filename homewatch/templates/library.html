@@ -74,10 +74,10 @@
             <option value="duration">Durée</option>
         </select>
         <span class="library-filter-label">Filtres</span>
-        {% if playermode %}<div class="library-filter" filter="0">Non vu</div>{% endif %}
-        {% if enable_chromecast %}<div class="library-filter" filter="3"><i class="icon icon-chromecast"></i></div>{% endif %}
-        {% if not playermode %}<div class="library-filter" filter="4"><i class="icon icon-webvideo"></i></div>{% endif %}
-        <div class="library-filter" filter="1">{{ preferred_media_language_flag }}</div>
+        {% if playermode %}<span class="library-filter" filter="0">Non vu</span>{% endif %}
+        {% if enable_chromecast %}<span class="library-filter" filter="3"><i class="icon icon-chromecast"></i></span>{% endif %}
+        {% if not playermode %}<span class="library-filter" filter="4"><i class="icon icon-webvideo"></i></span>{% endif %}
+        <span class="library-filter" filter="1">{{ preferred_media_language_flag }}</span>
     </div>
     <div class="library-section library-medias">
         {% for m in library.medias %}
