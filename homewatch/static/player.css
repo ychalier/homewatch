@@ -122,6 +122,7 @@
     overflow: hidden;
     border-radius: .4rem;
     height: 2.4rem;
+    flex-shrink: 0;
 }
 
 .inline-media-poster {
