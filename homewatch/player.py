@@ -67,6 +67,7 @@ class Player:
         self.current_volume: int = self.default_volume
         self.current_aspect_ratio: str | None = self.default_aspect_ratio
         self._old_state = None
+        self._playback_begins = False
         self._waiting_to_play = False
         self._waiting_to_pause = False
         self._waiting_to_stop = False
@@ -109,14 +110,9 @@ class Player:
             logger.debug("Event fired: time changed to %d", event.u.new_time)
             for observer in self.observers:
                 observer.on_time_changed(event.u.new_time)
-            if self._waiting_to_pause:
-                logger.info("Player is playing _waiting_to_pause is True, toggling pause now")
-                self._waiting_to_pause = False
-                self.toggle_play_pause()
-            if self._waiting_to_stop:
-                logger.info("Player is playing _waiting_to_stop is True, stopping now")
-                self._waiting_to_stop = False
-                self.stop()
+            if self._playback_begins:
+                self.on_playback_begins()
+                self._playback_begins = False
         self.vlc_event_manager.event_attach(
             vlc.EventType.MediaPlayerTimeChanged,
             on_time_changed,
@@ -153,27 +149,53 @@ class Player:
             logger.debug("Event fired: media player is buffering, _waiting_to_play is %s", self._waiting_to_play)
             if self._waiting_to_play:
                 self.vlc_media_player.play()
+                self._playback_begins = True
                 self._waiting_to_play = False
         self.vlc_event_manager.event_attach(
             vlc.EventType.MediaPlayerBuffering,
             onbuffering,
             self.vlc_media_player
         )
+
+    def on_playback_begins(self):
+        logger.info("Playback begins")
+        self.volume(self.current_volume)
+        self.aspect_ratio(self.current_aspect_ratio)
+        self.set_audio_source(self.selected_audio_source)
+        self.set_subtitle_source(self.selected_subtitle_source)
+        if self._waiting_to_pause:
+            logger.info("Player is playing _waiting_to_pause is True, toggling pause now")
+            self._waiting_to_pause = False
+            self.toggle_play_pause()
+        if self._waiting_to_stop:
+            logger.info("Player is playing _waiting_to_stop is True, stopping now")
+            self._waiting_to_stop = False
+            self.stop()
     
     def auto_select_sources(self):
         found = False
         self.selected_audio_source = 0 if self.media.audio_sources else None
         self.selected_subtitle_source = None
-        for i, source in enumerate(self.media.subtitle_sources):
-            if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
-                self.selected_subtitle_source = i
-                found = True
-                break
-        if not found:
-            for i, source in enumerate(self.media.audio_sources):
-                 if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
-                    self.selected_audio_source = i
+        if (len(self.media.audio_sources) != 1)\
+            or (self.media.audio_sources[0].language
+                not in settings.PREFERRED_MEDIA_LANGUAGE_CODES):
+            for i, source in enumerate(self.media.subtitle_sources):
+                if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
+                    self.selected_subtitle_source = i
+                    found = True
                     break
+            if not found:
+                for i, source in enumerate(self.media.audio_sources):
+                    if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
+                        self.selected_audio_source = i
+                        break
+            else:
+                for i, source in enumerate(self.media.audio_sources):
+                    if "vo" in source.title.lower():
+                        self.selected_audio_source = i
+                        break
+        logger.info("Autoselected audio source %s and subtitle source %s",
+            self.selected_audio_source, self.selected_subtitle_source)
 
     def load(self, media: Media, play: bool = False):
         logger.info("Loading media at %s", media.path)
@@ -191,13 +213,12 @@ class Player:
         logger.info("Loading media from MRL \"%s\"", mrl)
         self.vlc_media = self.vlc_instance.media_new(mrl)
         self.vlc_media_player.set_media(self.vlc_media)
-        self.set_audio_source(self.selected_audio_source)
-        self.set_subtitle_source(self.selected_subtitle_source)
         
     def play(self):
         logger.info("Triggering play")
         if self.vlc_media_player is not None:
             self.vlc_media_player.play()
+            self._playback_begins = True
         else:
             logger.error("Can not play, VLC media player is None")
 
