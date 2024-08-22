@@ -12,6 +12,7 @@
     const MEDIA_URL = "{{ media_url }}";
     const API_URL = "{{ url('api') }}";
     const WSS_URL = "{{ wss_url }}";
+    const FIRST_LIBRARY_LOAD = {% if first_library_load %}true{% else %}false{% endif %};
 </script>
 {% endblock scripts %}
 
@@ -111,6 +112,33 @@
 
     </div>
 </div>
+
+<template id="template-previous-status">
+    <div class="modal modal-previous-status">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <button class="modal-button-close"><i class="icon icon-cross"></i></button>
+            <div class="modal-body">
+                <div class="modal-info">
+                    <div class="inline-media">
+                        <div class="inline-media-poster-wrapper">
+                            <img class="inline-media-poster poster" load="lazy" />
+                        </div>
+                        <div class="inline-media-info">
+                            <div class="title"></div>
+                            <div class="subtitle"></div>
+                        </div>
+                    </div>
+                    <p>Lecture interrompue à <span class="time"></span></p>
+                </div>
+                <div class="modal-buttons">
+                    <button class="previous-status-load">Reprendre la lecture</button>
+                    <button class="previous-status-cancel">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
 
 <template id="template-queue-media">
     <div class="queue-media inline-media">

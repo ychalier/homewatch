@@ -136,6 +136,7 @@ class Theater(PlayerObserver):
 
     def get_status_dict(self) -> dict:
         return {
+            "now": int(time.time() * 1000),
             "autoplay": self.autoplay,
             "queue": self.queue.get_status_dict(),
             "player": self.player.get_status_dict()

@@ -189,6 +189,7 @@ class LibraryServer:
             playermode=settings.SERVER_MODE == "player",
             enable_chromecast=settings.CHROMECAST_GENERATION is not None,
             preferred_media_language_flag=settings.PREFERRED_MEDIA_LANGUAGE_FLAG,
+            first_library_load=True,
         )
     
     def _get_landing_redirection_target(self) -> str:
@@ -229,6 +230,7 @@ class LibraryServer:
             return werkzeug.Response(text, status=200, mimetype="application/json")
         template = self.jinja.get_template("library.html")
         text = template.render(library=library_folder, embedded=embedded)
+        self.jinja.globals.update(first_library_load=False)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
@@ -270,11 +272,6 @@ class PlayerServer(LibraryServer):
         self.wss.start()
         for hook_path in settings.PRE_HOOKS:
             execute_hook(hook_path)
-        if settings.STATUS_PATH and os.path.isfile(settings.STATUS_PATH):
-            logger.info("Loading status from %s", settings.STATUS_PATH)
-            with open(settings.STATUS_PATH, "r") as file:
-                status = json.load(file)
-            self.theater.load_status_dict(status)
 
     def export_status(self) -> dict:
         data = self.theater.get_status_dict()
@@ -282,6 +279,14 @@ class PlayerServer(LibraryServer):
             with open(settings.STATUS_PATH, "w") as file:
                 json.dump(data, file)
         return data
+    
+    def read_status(self) -> dict | None:
+        if settings.STATUS_PATH and os.path.isfile(settings.STATUS_PATH):
+            logger.info("Loading status from %s", settings.STATUS_PATH)
+            with open(settings.STATUS_PATH, "r") as file:
+                status = json.load(file)
+            return status
+        return None
 
     def close(self, hooks=True):
         logger.info("Closing server")
@@ -366,7 +371,18 @@ class PlayerServer(LibraryServer):
         threading.Thread(target=callback).start()
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
     
-    def view_status(self, request: werkzeug.Request) -> werkzeug.Response:
+    def view_api_read_status(self, request: werkzeug.Request) -> werkzeug.Response:
+        status = self.read_status()
+        text = json.dumps(status)
+        return werkzeug.Response(text, status=200, mimetype="application/json")
+    
+    def view_api_load_status(self, request: werkzeug.Request) -> werkzeug.Response:
+        status = self.read_status()
+        if status is not None:
+            self.theater.load_status_dict(status)
+        return werkzeug.Response("OK", status=204, mimetype="text/plain")
+    
+    def view_api_export_status(self, request: werkzeug.Request) -> werkzeug.Response:
         data = self.export_status()
         text = json.dumps(data)
         return werkzeug.Response(text, status=200, mimetype="application/json")
@@ -390,8 +406,12 @@ class PlayerServer(LibraryServer):
             return self.view_api_queue(request)
         elif path == "api/close":
             return self.view_api_close(request)
-        elif path == "status":
-            return self.view_status(request)
+        elif path == "api/status/read":
+            return self.view_api_read_status(request)
+        elif path == "api/status/load":
+            return self.view_api_load_status(request)
+        elif path == "api/status/export":
+            return self.view_api_export_status(request)
         return None
 
 

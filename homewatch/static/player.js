@@ -379,6 +379,35 @@ fetch(`${API_URL}/player`).then(res =>  res.json()).then(data => {
     player.loadPlayerData(data);
 });
 
+function closePreviousStatus() {
+    document.querySelectorAll(".modal-previous-status").forEach(remove);
+}
+
+function askUserForLoadingPreviousStatus(status) {
+    const template = document.getElementById("template-previous-status");
+    const node =  document.importNode(template.content, true);
+    node.querySelector(".poster").src = MEDIA_URL + status.player.media.folder + "/" + status.player.media.thumbnail;
+    node.querySelector(".title").textContent = status.player.media.title;
+    node.querySelector(".subtitle").textContent = status.player.media.subtitle;
+    node.querySelector(".time").textContent = formatDuration(status.player.time / 1000);
+    node.querySelector(".previous-status-load").addEventListener("click", () => {
+        fetch(`${API_URL}/status/load`).then(res => res.text()).then();
+        closePreviousStatus();
+    });
+    node.querySelector(".previous-status-cancel").addEventListener("click", closePreviousStatus);
+    node.querySelector(".modal-button-close").addEventListener("click", closePreviousStatus);
+    node.querySelector(".modal-overlay").addEventListener("click", closePreviousStatus);
+    document.body.appendChild(node);
+}
+
+if (FIRST_LIBRARY_LOAD) {
+    fetch(`${API_URL}/status/read`).then(res => res.json()).then(data => {
+        if (data != null) {
+            askUserForLoadingPreviousStatus(data);
+        }
+    });
+}
+
 /**
  * Event listeners
  */
