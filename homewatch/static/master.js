@@ -37,10 +37,33 @@ function formatDuration(totalSeconds, simplified=false) {
     }
 }
 
+
 function loadAndPlay(path, seek=null, target="media") {
     console.log("Loading and playing", path);
     return fetch(`${API_URL}/load?path=${path}&target=${target}` + (seek==null ? "" : `&seek=${seek}`));
 }
+
+
+function getSelectedOption(select) {
+    for (const option of select.querySelectorAll("option")) {
+        if (option.selected) {
+            return option.value;
+        }
+    }
+    return null;
+}
+
+
+function setSelectedOption(select, value) {
+    for (const option of select.querySelectorAll("option")) {
+        if (option.value == value) {
+            option.selected = true;
+        } else {
+            option.removeAttribute("selected");
+        }
+    }
+}
+
 
 window.addEventListener("load", () => {
     

@@ -53,6 +53,7 @@
     color: #787878;
 }
 
+.library-sort,
 .library-filter {
     margin: 0 .2rem .2rem 0;
     border-radius: .4rem;

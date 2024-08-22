@@ -1,26 +1,33 @@
 window.addEventListener("load", () => {
 
 const DEFAULT_LONG_PRESS_TIMEOUT = 500;
+
+const SORT_TITLE = 0;
+const SORT_DIRECTOR = 1;
+const SORT_YEAR = 2;
+const SORT_DURATION = 3;
+const FILTER_UNSEEN = 0;
+const FILTER_LANGUAGE = 1;
+const FILTER_SHORT = 2;
+const FILTER_CHROMECAST = 3;
+const FILTER_HTML5 = 4;
+
+const sortSelect = document.querySelector("select.library-sort");
 var pressTimer = null;
+var currentSortKey = null;
+var currentFilters = [];
+
 
 function registerUserLocation() {
     const userLocation = {
         pathname: window.location.pathname,
-        scroll: document.querySelector(".library").scrollTop
+        scroll: document.querySelector(".library").scrollTop,
+        sort: currentSortKey,
+        filters: currentFilters,
     }
     localStorage.setItem(STORAGE_KEY_USER_LOCATION, JSON.stringify(userLocation));
 }
-registerUserLocation();
-document.querySelector(".library").addEventListener("scroll", () => {
-    registerUserLocation();
-    clearTimeout(pressTimer);
-});
 
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has("scroll")) {
-    const scrollY = parseFloat(urlParams.get("scroll"));
-    document.querySelector(".library").scrollTo(0, scrollY);
-}
 
 function setViewedMedia(path, viewed, mediaProgress) {
     fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
@@ -30,6 +37,7 @@ function setViewedMedia(path, viewed, mediaProgress) {
         });
 }
 
+
 function setViewedFolder(path, viewed) {
     fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
         .then(() => {
@@ -37,9 +45,11 @@ function setViewedFolder(path, viewed) {
         });
 }
 
+
 function closeMediaDetails() {
     document.querySelectorAll(".modal-media-details").forEach(remove);
 }
+
 
 function showMediaDetails(mediaElement) {
     const template = document.getElementById("template-media-details");
@@ -100,7 +110,118 @@ function showMediaDetails(mediaElement) {
     document.body.appendChild(detailsElement);
 }
 
+
 const preventEventDefault = event => event.preventDefault();
+
+
+function readSortKey() {
+    let sortingKeyString = getSelectedOption(sortSelect);
+    switch (sortingKeyString) {
+        case "title":
+            currentSortKey = SORT_TITLE;
+            break;
+        case "director":
+            currentSortKey = SORT_DIRECTOR;
+            break;
+        case "year":
+            currentSortKey = SORT_YEAR;
+            break;
+        case "duration":
+            currentSortKey = SORT_DURATION;
+            break;
+        default:
+            currentSortKey = SORT_TITLE;
+            break;
+    }
+}
+
+
+function extractSortKeyValue(mediaElement, sortKey) {
+    let value;
+    switch(sortKey) {
+        case SORT_TITLE:
+            value = mediaElement.querySelector(".title").textContent;
+            break;
+        case SORT_DIRECTOR:
+            value = mediaElement.getAttribute("director");
+            break;
+        case SORT_YEAR:
+            value = mediaElement.getAttribute("year");
+            break;
+        case SORT_DURATION:
+            value = parseInt(mediaElement.getAttribute("duration"));
+            break;
+    }
+    return value;
+}
+
+
+function updateSort() {
+    const mediaContainer = document.querySelector(".library-section.library-medias");
+    const mediaElements = [];
+    document.querySelectorAll(".media").forEach((mediaElement) => {
+        mediaElements.push({
+            element: mediaElement.parentElement, // .media-wrapper
+            key: extractSortKeyValue(mediaElement, currentSortKey)
+        })
+    });
+    mediaElements.sort((a, b) => a.key < b.key ? -1 : 1);
+    for (let i = 0; i < mediaElements.length; i++) {
+        mediaContainer.appendChild(mediaElements[i].element);
+    }
+}
+
+
+function toggleFilter(filter) {
+    if (currentFilters.includes(filter)) {
+        currentFilters.splice(currentFilters.indexOf(filter), 1);
+    } else {
+        currentFilters.push(filter);
+    }
+    updateFilters();
+}
+
+
+function updateFilters() {
+    for (let filter = 0; filter <= 4; filter++) {
+        const domFilterElement = document.querySelector(`.library-filter[filter="${filter}"]`);
+        if (domFilterElement == null) continue;
+        if (currentFilters.includes(filter)) {
+            domFilterElement.classList.add("active");
+        } else {
+            domFilterElement.classList.remove("active");
+        }
+    }
+    document.querySelectorAll(".media").forEach(media => {
+        let shouldBeSeen = true;
+        if (currentFilters.includes(FILTER_UNSEEN)) {
+            const progress = media.querySelector("progress");
+            shouldBeSeen = shouldBeSeen && (parseFloat(progress.value) < .9 * parseFloat(progress.max));
+        }
+        if (currentFilters.includes(FILTER_LANGUAGE)) {
+            const hasLanguage = media.querySelector(".media-badge-language") != null;
+            shouldBeSeen = shouldBeSeen && hasLanguage;
+        }
+        if (currentFilters.includes(FILTER_SHORT)) {
+            const durationMs = parseFloat(media.getAttribute("duration"));
+            shouldBeSeen = shouldBeSeen && (durationMs < 20 * 60 * 1000);
+        }
+        if (currentFilters.includes(FILTER_CHROMECAST)) {
+            const isCastabale = media.querySelector(".media-badge-chromecast") != null;
+            shouldBeSeen = shouldBeSeen && isCastabale;
+        }
+        if (currentFilters.includes(FILTER_HTML5)) {
+            const isHtml5 = media.querySelector(".media-badge-html5") != null;
+            shouldBeSeen = shouldBeSeen && isHtml5;
+        }
+        if (shouldBeSeen) {
+            media.parentElement.classList.remove("hidden");
+        } else {
+            media.parentElement.classList.add("hidden");
+        }
+    });
+}
+
 
 for (const mediaElement of document.querySelectorAll(".media")) {
     mediaElement.addEventListener("mouseup", (event) => {
@@ -142,66 +263,59 @@ if (PLAYERMODE) {
     }
 }
 
-const FILTER_UNSEEN = 0;
-const FILTER_LANGUAGE = 1;
-const FILTER_SHORT = 2;
-const FILTER_CHROMECAST = 3;
-const FILTER_HTML5 = 4;
-const FILTERS = [];
-
-function toggleFilter(filter) {
-    if (FILTERS.includes(filter)) {
-        FILTERS.splice(FILTERS.indexOf(filter), 1);
-    } else {
-        FILTERS.push(filter);
-    }
-    updateFilters();
-}
-
-function updateFilters() {
-    for (let filter = 0; filter <= 4; filter++) {
-        const domFilterElement = document.querySelector(`.library-filter[filter="${filter}"]`);
-        if (domFilterElement == null) continue;
-        if (FILTERS.includes(filter)) {
-            domFilterElement.classList.add("active");
-        } else {
-            domFilterElement.classList.remove("active");
-        }
-    }
-    document.querySelectorAll(".media").forEach(media => {
-        let shouldBeSeen = true;
-        if (FILTERS.includes(FILTER_UNSEEN)) {
-            const progress = media.querySelector("progress");
-            shouldBeSeen = shouldBeSeen && (parseFloat(progress.value) < .9 * parseFloat(progress.max));
-        }
-        if (FILTERS.includes(FILTER_LANGUAGE)) {
-            const hasLanguage = media.querySelector(".media-badge-language") != null;
-            shouldBeSeen = shouldBeSeen && hasLanguage;
-        }
-        if (FILTERS.includes(FILTER_SHORT)) {
-            const durationMs = parseFloat(media.getAttribute("duration"));
-            shouldBeSeen = shouldBeSeen && (durationMs < 20 * 60 * 1000);
-        }
-        if (FILTERS.includes(FILTER_CHROMECAST)) {
-            const isCastabale = media.querySelector(".media-badge-chromecast") != null;
-            shouldBeSeen = shouldBeSeen && isCastabale;
-        }
-        if (FILTERS.includes(FILTER_HTML5)) {
-            const isHtml5 = media.querySelector(".media-badge-html5") != null;
-            shouldBeSeen = shouldBeSeen && isHtml5;
-        }
-        if (shouldBeSeen) {
-            media.parentElement.classList.remove("hidden");
-        } else {
-            media.parentElement.classList.add("hidden");
-        }
-    });
-}
+sortSelect.addEventListener("input", () => {
+    readSortKey();
+    updateSort();
+    registerUserLocation();
+});
 
 document.querySelectorAll(".library-filter").forEach(filterElement => {
     filterElement.addEventListener("click", () => {
         toggleFilter(parseInt(filterElement.getAttribute("filter")));
+        registerUserLocation();
     });
 });
+
+document.querySelector(".library").addEventListener("scroll", () => {
+    registerUserLocation();
+    clearTimeout(pressTimer);
+});
+
+const userLocationString = localStorage.getItem(STORAGE_KEY_USER_LOCATION);
+if (userLocationString != "" && userLocationString != null) {
+    const userLocation = JSON.parse(userLocationString);
+    if (userLocation.sort != undefined && userLocation.sort != null) {
+        currentSortKey = userLocation.sort;
+        switch(currentSortKey) {
+            case SORT_TITLE:
+                setSelectedOption(sortSelect, "title");
+                break;
+            case SORT_DIRECTOR:
+                setSelectedOption(sortSelect, "director");
+                break;
+            case SORT_YEAR:
+                setSelectedOption(sortSelect, "year");
+                break;
+            case SORT_DURATION:
+                setSelectedOption(sortSelect, "duration");
+                break;
+        }
+    }
+    if (userLocation.filters != undefined && userLocation.filters != null) {
+        currentFilters = userLocation.filters;
+    }
+}
+
+registerUserLocation();
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has("scroll")) {
+    const scrollY = parseFloat(urlParams.get("scroll"));
+    document.querySelector(".library").scrollTo(0, scrollY);
+}
+
+readSortKey();
+updateSort();
+updateFilters();
 
 });

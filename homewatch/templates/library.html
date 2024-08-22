@@ -66,6 +66,13 @@
     {% endif %}
     {% if library.medias %}
     <div class="library-section library-filters">
+        <span class="library-filter-label">Tri</span>
+        <select class="library-sort">
+            <option value="title" selected>Titre</option>
+            <option value="director">Réal.</option>
+            <option value="year">Année</option>
+            <option value="duration">Durée</option>
+        </select>
         <span class="library-filter-label">Filtres</span>
         {% if playermode %}<div class="library-filter" filter="0">Non vu</div>{% endif %}
         {% if enable_chromecast %}<div class="library-filter" filter="3"><i class="icon icon-chromecast"></i></div>{% endif %}
@@ -75,7 +82,13 @@
     <div class="library-section library-medias">
         {% for m in library.medias %}
             <div class="media-wrapper">
-                <div class="media" type='{{ m.media_type_string }}' duration="{{ m.duration_ms }}" path="{{ url(library.path, m.basename)[1:] }}" href="{{ media(library.path, m.basename) }}">
+                <div class="media"
+                     type='{{ m.media_type_string }}'
+                     {% if m.director %}director="{{ m.director }}"{% endif %}
+                     {% if m.year %}year="{{ m.year }}"{% endif %}
+                     duration="{{ m.duration_ms }}"
+                     path="{{ url(library.path, m.basename)[1:] }}"
+                     href="{{ media(library.path, m.basename) }}">
                     <div class="media-body">
                         <img class="media-poster" loading="lazy" src="{{ media(library.path, m.thumbnail) }}" />
                         <div class="media-overlay"></div>
