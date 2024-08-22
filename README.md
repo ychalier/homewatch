@@ -124,6 +124,8 @@ On the phone, go to http://192.168.1.69:8000 (or scan the QR code), and voilà!
 
 Chromecast integration is adapted from [maxwellito/apachecast](https://github.com/maxwellito/apachecast).
 
+Sample video files are *[Sintel](https://durian.blender.org/download/)* and *[Big Buck Bunny](https://peach.blender.org/download/)* from the Blender Foundation.
+
 ## Contributing
 
 Contributions are welcomed. Push your branch and create a pull request detailling your changes.

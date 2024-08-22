@@ -18,7 +18,7 @@ LIBRARY_MODE = "local"
 # root folder containing media files. If the library mode is 'remote', this
 # should be the URL to the remote Homewatch server, ending with '/library/'
 # (the trailing slash is important).
-LIBRARY_ROOT = os.path.realpath(".")
+LIBRARY_ROOT = os.path.realpath("sample")
 
 # Set of media file extensions (anything else will be ignored)
 VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm", ".wmv"}
