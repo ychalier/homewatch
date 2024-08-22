@@ -377,7 +377,8 @@ class Media(LibraryEntry):
             "framerate": self.framerate,
             "thumbnail": str(self.thumbnail),
             "audio_sources": [s.to_dict() for s in self.audio_sources],
-            "subtitle_sources": [s.to_dict() for s in self.subtitle_sources]
+            "subtitle_sources": [s.to_dict() for s in self.subtitle_sources],
+            "folder": self.folder.path.as_posix(),
         }
     
     def subtitle(self) -> str:
@@ -406,13 +407,13 @@ class Media(LibraryEntry):
             director=self.director,
             year=self.year,
             mediapath=self.path.as_posix(),
-            folder=self.folder.path.as_posix(),
             thumbnail=pathlib.Path(self.thumbnail).as_posix(),
         )
         return base_dict
 
     def to_mindict(self) -> dict:
         return {
+            "basename": self.basename,
             "title": self.name,
             "subtitle": self.subtitle(),
             "folder": self.folder.path.as_posix(),

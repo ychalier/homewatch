@@ -133,4 +133,11 @@ class Theater(PlayerObserver):
             raise KeyError(path)
         logger.debug("Path %s is a media", path)
         self.set_viewed_media(media, viewed)
+
+    def get_status_dict(self) -> dict:
+        return {
+            "autoplay": self.autoplay,
+            "queue": self.queue.get_status_dict(),
+            "player": self.player.get_status_dict()
+        }
         

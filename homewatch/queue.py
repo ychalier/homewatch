@@ -145,3 +145,6 @@ class Queue:
     @property
     def empty(self) -> bool:
         return not self.elements
+    
+    def get_status_dict(self) -> dict:
+        return self.to_dict()

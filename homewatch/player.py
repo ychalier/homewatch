@@ -277,3 +277,12 @@ class Player:
     def bind_observer(self, observer: PlayerObserver):
         logger.info("Binding observer %s", observer)
         self.observers.add(observer)
+
+    def get_status_dict(self) -> dict:
+        return {
+            "current_volume": self.current_volume,
+            "current_aspect_ratio": self.current_aspect_ratio,
+            "media": None if self.media is None else self.media.to_mindict(),
+            "time": self.time,
+            "state": self.state
+        }

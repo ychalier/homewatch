@@ -353,6 +353,11 @@ class PlayerServer(LibraryServer):
         threading.Thread(target=callback).start()
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
     
+    def view_status(self, request: werkzeug.Request) -> werkzeug.Response:
+        data = self.theater.get_status_dict()
+        text = json.dumps(data)
+        return werkzeug.Response(text, status=200, mimetype="application/json")
+    
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
         response = super().dispatch_request(request)
         if response is not None:
@@ -372,6 +377,8 @@ class PlayerServer(LibraryServer):
             return self.view_api_queue(request)
         elif path == "api/close":
             return self.view_api_close(request)
+        elif path == "status":
+            return self.view_status(request)
         return None
 
 
