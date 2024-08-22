@@ -284,25 +284,27 @@ document.querySelector(".library").addEventListener("scroll", () => {
 const userLocationString = localStorage.getItem(STORAGE_KEY_USER_LOCATION);
 if (userLocationString != "" && userLocationString != null) {
     const userLocation = JSON.parse(userLocationString);
-    if (userLocation.sort != undefined && userLocation.sort != null) {
-        currentSortKey = userLocation.sort;
-        switch(currentSortKey) {
-            case SORT_TITLE:
-                setSelectedOption(sortSelect, "title");
-                break;
-            case SORT_DIRECTOR:
-                setSelectedOption(sortSelect, "director");
-                break;
-            case SORT_YEAR:
-                setSelectedOption(sortSelect, "year");
-                break;
-            case SORT_DURATION:
-                setSelectedOption(sortSelect, "duration");
-                break;
+    if (window.location.pathname == userLocation.pathname) {
+        if (userLocation.sort != undefined && userLocation.sort != null) {
+            currentSortKey = userLocation.sort;
+            switch(currentSortKey) {
+                case SORT_TITLE:
+                    setSelectedOption(sortSelect, "title");
+                    break;
+                case SORT_DIRECTOR:
+                    setSelectedOption(sortSelect, "director");
+                    break;
+                case SORT_YEAR:
+                    setSelectedOption(sortSelect, "year");
+                    break;
+                case SORT_DURATION:
+                    setSelectedOption(sortSelect, "duration");
+                    break;
+            }
         }
-    }
-    if (userLocation.filters != undefined && userLocation.filters != null) {
-        currentFilters = userLocation.filters;
+        if (userLocation.filters != undefined && userLocation.filters != null) {
+            currentFilters = userLocation.filters;
+        }
     }
 }
 
