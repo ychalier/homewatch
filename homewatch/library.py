@@ -414,7 +414,7 @@ class Media(LibraryEntry):
     def to_mindict(self) -> dict:
         return {
             "basename": self.basename,
-            "title": self.name,
+            "title": self.title,
             "subtitle": self.subtitle(),
             "folder": self.folder.path.as_posix(),
             "thumbnail": pathlib.Path(self.thumbnail).as_posix(),
