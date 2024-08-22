@@ -270,6 +270,11 @@ class PlayerServer(LibraryServer):
         self.wss.start()
         for hook_path in settings.PRE_HOOKS:
             execute_hook(hook_path)
+        if settings.STATUS_PATH and os.path.isfile(settings.STATUS_PATH):
+            logger.info("Loading status from %s", settings.STATUS_PATH)
+            with open(settings.STATUS_PATH, "r") as file:
+                status = json.load(file)
+            self.theater.load_status_dict(status)
 
     def export_status(self) -> dict:
         data = self.theater.get_status_dict()

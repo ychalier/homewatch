@@ -11,7 +11,7 @@ import os
 import pathlib
 import urllib.parse
 
-from .library import Media, SUBTITLE_TRACK, SUBTITLE_FILE
+from .library import Library, Media, SUBTITLE_TRACK, SUBTITLE_FILE
 from . import settings
 
 if settings.VLC_DLL_DIRECTORY is not None and os.path.isdir(settings.VLC_DLL_DIRECTORY):
@@ -72,6 +72,8 @@ class Player:
         self.current_aspect_ratio: str | None = self.default_aspect_ratio
         self._old_state = None
         self._waiting_to_play = False
+        self._waiting_to_pause = False
+        self._waiting_to_stop = False
 
     @property
     def media_path(self) -> str | None:
@@ -111,6 +113,14 @@ class Player:
             logger.debug("Event fired: time changed to %d", event.u.new_time)
             for observer in self.observers:
                 observer.on_time_changed(event.u.new_time)
+            if self._waiting_to_pause:
+                logger.info("Player is playing _waiting_to_pause is True, toggling pause now")
+                self._waiting_to_pause = False
+                self.toggle_play_pause()
+            if self._waiting_to_stop:
+                logger.info("Player is playing _waiting_to_stop is True, stopping now")
+                self._waiting_to_stop = False
+                self.stop()
         self.vlc_event_manager.event_attach(
             vlc.EventType.MediaPlayerTimeChanged,
             on_time_changed,
@@ -280,9 +290,28 @@ class Player:
 
     def get_status_dict(self) -> dict:
         return {
+            "media": None if self.media is None else self.media.to_mindict(),
             "current_volume": self.current_volume,
             "current_aspect_ratio": self.current_aspect_ratio,
-            "media": None if self.media is None else self.media.to_mindict(),
             "time": self.time,
-            "state": self.state
+            "state": self.state,
+            "selected_audio_source": self.selected_audio_source,
+            "selected_subtitle_source": self.selected_subtitle_source
         }
+    
+    def load_status_dict(self, status: dict, library: Library):
+        media = None
+        if status.get("media") is not None:
+            media_dict = status["media"]
+            media = library.get_media2(media_dict["basename"], media_dict["folder"])
+        if media is not None:
+            self.load(media)
+            self.set_audio_source(status.get("selected_audio_source", self.selected_audio_source))
+            self.set_subtitle_source(status.get("selected_subtitle_source", self.selected_subtitle_source))
+            if status.get("state") in [Player.STATE_PLAYING, Player.STATE_PAUSED, Player.STATE_STOPPED]:
+                self._waiting_to_pause = status["state"] == Player.STATE_PAUSED
+                self._waiting_to_stop = status["state"] == Player.STATE_STOPPED
+                self.play()
+            self.seek(status.get("time", self.time))
+        self.volume(status.get("current_volume", self.current_volume))
+        self.aspect_ratio(status.get("current_aspect_ratio", self.current_aspect_ratio))

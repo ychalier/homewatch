@@ -859,6 +859,9 @@ class Library(dict[str, LibraryFolder]):
             return None
         return folder.get_media(path.name)
     
+    def get_media2(self, basename: str, folder: str) -> Media | None:
+        return self.get_media(pathlib.Path(folder) / basename)
+    
     def get_playlist(self, path: pathlib.Path) -> Playlist | None:
         folder = self.get(path.parent.as_posix(), None)
         if folder is None:

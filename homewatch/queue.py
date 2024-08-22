@@ -6,7 +6,7 @@ and serialization.
 import logging
 import random
 
-from .library import Media
+from .library import Library, Media
 
 
 logger = logging.getLogger(__name__)
@@ -148,3 +148,14 @@ class Queue:
     
     def get_status_dict(self) -> dict:
         return self.to_dict()
+    
+    def load_status_dict(self, status: dict, library: Library):
+        self.elements = []
+        for media_dict in status.get("elements", []):
+            media = library.get_media2(media_dict["basename"], media_dict["folder"])
+            if media is not None:
+                self.elements.append(media)
+        self.ordering = status.get("ordering", self.ordering)
+        self.current = status.get("current", self.current)
+        self.shuffle = status.get("shuffle", self.shuffle)
+        self.loop = status.get("loop", self.loop)

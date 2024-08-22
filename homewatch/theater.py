@@ -140,4 +140,8 @@ class Theater(PlayerObserver):
             "queue": self.queue.get_status_dict(),
             "player": self.player.get_status_dict()
         }
-        
+    
+    def load_status_dict(self, status: dict):
+        self.autoplay = status.get("autoplay", self.autoplay)
+        self.queue.load_status_dict(status.get("queue", {}), self.library)
+        self.player.load_status_dict(status.get("player", {}), self.library)
