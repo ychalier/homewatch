@@ -271,8 +271,16 @@ class PlayerServer(LibraryServer):
         for hook_path in settings.PRE_HOOKS:
             execute_hook(hook_path)
 
+    def export_status(self) -> dict:
+        data = self.theater.get_status_dict()
+        if settings.STATUS_PATH:
+            with open(settings.STATUS_PATH, "w") as file:
+                json.dump(data, file)
+        return data
+
     def close(self, hooks=True):
         logger.info("Closing server")
+        self.export_status()
         if hooks:
             for hook_path in settings.POST_HOOKS:
                 execute_hook(hook_path)
@@ -354,7 +362,7 @@ class PlayerServer(LibraryServer):
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
     
     def view_status(self, request: werkzeug.Request) -> werkzeug.Response:
-        data = self.theater.get_status_dict()
+        data = self.export_status()
         text = json.dumps(data)
         return werkzeug.Response(text, status=200, mimetype="application/json")
     

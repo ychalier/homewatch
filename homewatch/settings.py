@@ -18,7 +18,7 @@ LIBRARY_MODE = "local"
 # root folder containing media files. If the library mode is 'remote', this
 # should be the URL to the remote Homewatch server, ending with '/library/'
 # (the trailing slash is important).
-LIBRARY_ROOT = os.path.expanduser("~/Vidéos")
+LIBRARY_ROOT = os.path.realpath(".")
 
 # Set of media file extensions (anything else will be ignored)
 VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm", ".wmv"}
@@ -83,6 +83,9 @@ VLC_DLL_DIRECTORY = None
 
 # Folder containing watch history
 HISTORY_PATH = "history"
+
+# File path to export theater status
+STATUS_PATH = "status.json"
 
 # Player default settings
 PLAYER_FASTFORWARD_SECONDS = 30
