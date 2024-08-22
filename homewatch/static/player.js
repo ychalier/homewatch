@@ -402,7 +402,7 @@ function askUserForLoadingPreviousStatus(status) {
 
 if (FIRST_LIBRARY_LOAD) {
     fetch(`${API_URL}/status/read`).then(res => res.json()).then(data => {
-        if (data != null) {
+        if (data != null && data.player != null && (data.player.state == STATE_PLAYING || data.player.state == STATE_PAUSED)) {
             askUserForLoadingPreviousStatus(data);
         }
     });
