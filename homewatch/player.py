@@ -51,16 +51,12 @@ class Player:
     STATE_ENDED = 6
     STATE_ERROR = 7
 
-    def __init__(self,
-                 fastforward_seconds: int = settings.PLAYER_FASTFORWARD_SECONDS,
-                 rewind_seconds: int = settings.PLAYER_REWIND_SECONDS,
-                 default_volume: int = settings.PLAYER_DEFAULT_VOLUME,
-                 default_aspect_ratio: str | None = settings.PLAYER_DEFAULT_ASPECT_RATIO):
+    def __init__(self):
         self.observers: set[PlayerObserver] = set()
-        self.fastforward_seconds: int = fastforward_seconds
-        self.rewind_seconds: int = rewind_seconds
-        self.default_volume: int = default_volume
-        self.default_aspect_ratio: str | None = default_aspect_ratio
+        self.fastforward_seconds: int = settings.DEFAULT_FASTFORWARD_SECONDS
+        self.rewind_seconds: int = settings.DEFAULT_REWIND_SECONDS
+        self.default_volume: int = settings.DEFAULT_VOLUME
+        self.default_aspect_ratio: str | None = settings.DEFAULT_ASPECT_RATIO
         self.media: Media | None = None
         self.vlc_instance: vlc.Instance | None = None
         self.vlc_media_player: vlc.MediaPlayer | None = None

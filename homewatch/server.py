@@ -74,7 +74,7 @@ class WebsocketServer(threading.Thread, PlayerObserver):
         self.connections = set()
         self.theater = self.server.theater
         self.player = self.server.theater.player
-        self.close_on_end = False
+        self.close_on_end = settings.DEFAULT_CLOSE_ON_END
         self.sleep_at = None
         self.player.bind_observer(self)
         self.sleep_watcher = SleepWatcher(self)

@@ -87,11 +87,15 @@ HISTORY_PATH = "history"
 # File path to export theater status
 STATUS_PATH = "status.json"
 
-# Player default settings
-PLAYER_FASTFORWARD_SECONDS = 30
-PLAYER_REWIND_SECONDS = 30
-PLAYER_DEFAULT_VOLUME = 50
-PLAYER_DEFAULT_ASPECT_RATIO = None
+# Default settings
+DEFAULT_AUTOPLAY = True
+DEFAULT_SHUFFLE = False
+DEFAULT_LOOP = True
+DEFAULT_CLOSE_ON_END = False
+DEFAULT_FASTFORWARD_SECONDS = 30
+DEFAULT_REWIND_SECONDS = 30
+DEFAULT_VOLUME = 50
+DEFAULT_ASPECT_RATIO = None
 
 # Preferred media language, as a 2 letters ISO 639 code. Supported languages are
 # reported below. This is used to provide library filtering and automatic

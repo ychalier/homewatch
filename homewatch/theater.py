@@ -7,6 +7,7 @@ from .player import Player, PlayerObserver
 from .history import History
 from .library import Library, LibraryFolder, Media
 from .queue import Queue, StartOfQueueException, EndOfQueueException
+from . import settings
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class Theater(PlayerObserver):
         self.queue: Queue = Queue()
         self.player.setup()
         self.player.bind_observer(self)
-        self.autoplay = True
+        self.autoplay = settings.DEFAULT_AUTOPLAY
     
     def load_current(self):
         media = self.queue.current_media

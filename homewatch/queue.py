@@ -7,6 +7,7 @@ import logging
 import random
 
 from .library import Library, Media
+from . import settings
 
 
 logger = logging.getLogger(__name__)
@@ -34,8 +35,8 @@ class Queue:
         self.elements: list[Media] = []
         self.ordering: list[int] = []
         self.current: int | None = None
-        self.shuffle: bool = False
-        self.loop: bool = True
+        self.shuffle: bool = settings.DEFAULT_SHUFFLE
+        self.loop: bool = settings.DEFAULT_LOOP
     
     def to_dict(self) -> dict:
         return {
