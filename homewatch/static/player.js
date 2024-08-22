@@ -6,9 +6,19 @@ const userLocationString = localStorage.getItem(STORAGE_KEY_USER_LOCATION);
 if (userLocationString != "" && userLocationString != null) {
     const userLocation = JSON.parse(userLocationString);
     iframe.src = userLocation.pathname + `?embedded=1&scroll=${userLocation.scroll}`;
+    var iframeTimeout = setTimeout(() => {
+        console.error("Library iframe did not load fast enough. Loading default page.");
+        iframe.src = iframe.getAttribute("basesrc");
+    }, 3000);
+    iframe.addEventListener("load", () => {
+        console.log("Library iframe successfully loaded");
+        clearTimeout(iframeTimeout);
+    });
+
 } else {
     iframe.src = iframe.getAttribute("basesrc");
 }
+
 
 const STATE_NOTHINGSPECIAL = 0;
 const STATE_OPENING = 1;
