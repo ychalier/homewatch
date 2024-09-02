@@ -191,7 +191,7 @@ class Player:
                         break
             else:
                 for i, source in enumerate(self.media.audio_sources):
-                    if "vo" in source.title.lower():
+                    if source.title is not None and "vo" in source.title.lower():
                         self.selected_audio_source = i
                         break
         logger.info("Autoselected audio source %s and subtitle source %s",
