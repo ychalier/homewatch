@@ -135,23 +135,39 @@ function readSortKey() {
     }
 }
 
+/**
+ * Remove diacritics and lower a string, for generalized comparison.
+ * @param {String} string The string to normalize 
+ * @returns The normalized string
+ */
+function normalizeString(string) {
+    if (string == null) {
+        return null;
+    }
+    return string.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 
 function extractSortKeyValue(mediaElement, sortKey) {
     let value;
     switch(sortKey) {
         case SORT_TITLE:
-            value = mediaElement.querySelector(".title").textContent;
+            value = normalizeString(mediaElement.querySelector(".title").textContent);
+            if (value == null) value = "ÿ";
             break;
         case SORT_DIRECTOR:
-            value = mediaElement.getAttribute("director");
+            value = normalizeString(mediaElement.getAttribute("director"));
+            if (value == null) value = "ÿ";
             break;
         case SORT_YEAR:
             value = mediaElement.getAttribute("year");
+            if (value == null) value = "9999";
             break;
         case SORT_DURATION:
             value = parseInt(mediaElement.getAttribute("duration"));
             break;
     }
+    
     return value;
 }
 
