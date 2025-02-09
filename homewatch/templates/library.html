@@ -68,7 +68,8 @@
     <div class="library-section library-filters">
         <span class="library-filter-label">Tri</span>
         <select class="library-sort">
-            <option value="title" selected>Titre</option>
+            <option value="default" selected>Défaut</option>
+            <option value="title">Titre</option>
             <option value="director">Réal.</option>
             <option value="year">Année</option>
             <option value="duration">Durée</option>
@@ -84,6 +85,9 @@
             <div class="media-wrapper">
                 <div class="media"
                      type='{{ m.media_type_string }}'
+                     {% if m.counter %}counter="{{ m.counter }}"{% endif %}
+                     {% if m.season %}season="{{ m.season }}"{% endif %}
+                     {% if m.episode %}episode="{{ m.episode }}"{% endif %}
                      {% if m.director %}director="{{ m.director }}"{% endif %}
                      {% if m.year %}year="{{ m.year }}"{% endif %}
                      duration="{{ m.duration_ms }}"

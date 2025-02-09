@@ -2,10 +2,11 @@ window.addEventListener("load", () => {
 
 const DEFAULT_LONG_PRESS_TIMEOUT = 500;
 
-const SORT_TITLE = 0;
-const SORT_DIRECTOR = 1;
-const SORT_YEAR = 2;
-const SORT_DURATION = 3;
+const SORT_DEFAULT = 0;
+const SORT_TITLE = 1;
+const SORT_DIRECTOR = 2;
+const SORT_YEAR = 3;
+const SORT_DURATION = 4;
 const FILTER_UNSEEN = 0;
 const FILTER_LANGUAGE = 1;
 const FILTER_SHORT = 2;
@@ -129,8 +130,9 @@ function readSortKey() {
         case "duration":
             currentSortKey = SORT_DURATION;
             break;
+        case "default":
         default:
-            currentSortKey = SORT_TITLE;
+            currentSortKey = SORT_DEFAULT;
             break;
     }
 }
@@ -151,6 +153,21 @@ function normalizeString(string) {
 function extractSortKeyValue(mediaElement, sortKey) {
     let value;
     switch(sortKey) {
+        case SORT_DEFAULT:
+            value = [null, null, null, null];
+            if (mediaElement.hasAttribute("counter")) {
+                value[0] = parseInt(mediaElement.getAttribute("counter"));
+            }
+            if (mediaElement.hasAttribute("season")) {
+                value[1] = parseInt(mediaElement.getAttribute("season"));
+            }
+            if (mediaElement.hasAttribute("episode")) {
+                value[2] = parseInt(mediaElement.getAttribute("episode"));
+            }
+            if (mediaElement.hasAttribute("title")) {
+                value[3] = mediaElement.getAttribute("title");
+            }
+            break;
         case SORT_TITLE:
             value = normalizeString(mediaElement.querySelector(".title").textContent);
             if (value == null) value = "ÿ";
@@ -172,6 +189,30 @@ function extractSortKeyValue(mediaElement, sortKey) {
 }
 
 
+function compareSortKeys(a, b) {
+    const aKey = a.key;
+    const bKey = b.key;
+    if (Array.isArray(aKey)) {
+        for (let i = 0; i < aKey.length; i++) {
+            if (aKey[i] == null && bKey[i] == null) {
+                continue;
+            } else if (bKey[i] == null) {
+                return -1;
+            } else if (aKey[i] == null) {
+                return 1;
+            } else {
+                if (aKey[i] == bKey[i]) {
+                    continue;
+                }
+                return aKey[i] < bKey[i] ? -1 : 1;
+            }
+        }
+    } else {
+        return aKey < bKey ? -1 : 1;
+    }
+}
+
+
 function updateSort() {
     const mediaContainer = document.querySelector(".library-section.library-medias");
     const mediaElements = [];
@@ -181,7 +222,7 @@ function updateSort() {
             key: extractSortKeyValue(mediaElement, currentSortKey)
         })
     });
-    mediaElements.sort((a, b) => a.key < b.key ? -1 : 1);
+    mediaElements.sort(compareSortKeys);
     for (let i = 0; i < mediaElements.length; i++) {
         mediaContainer.appendChild(mediaElements[i].element);
     }
@@ -304,6 +345,9 @@ if (userLocationString != "" && userLocationString != null) {
         if (userLocation.sort != undefined && userLocation.sort != null) {
             currentSortKey = userLocation.sort;
             switch(currentSortKey) {
+                case SORT_DEFAULT:
+                    setSelectedOption(sortSelect, "default");
+                    break;
                 case SORT_TITLE:
                     setSelectedOption(sortSelect, "title");
                     break;
