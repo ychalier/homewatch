@@ -230,6 +230,10 @@ class Player {
         setSelectValue("#player-audio-sources", this.audio);
         setSelectValue("#player-subtitle-sources", this.subs);
         displayTime(self.time);
+        if (this.media.duration < 15 * 60 && this.closeOnEnd) {
+            alert("Media is shorter than 15 minutes and close on end is enabled. Disabling close on end.");
+            this.setCloseOnEnd(false, true);
+        }
     }
 
     setQueue(newQueue) {
