@@ -55,6 +55,7 @@ class Player:
         self.observers: set[PlayerObserver] = set()
         self.fastforward_seconds: int = settings.DEFAULT_FASTFORWARD_SECONDS
         self.rewind_seconds: int = settings.DEFAULT_REWIND_SECONDS
+        self.subs_delay_step_ms: float = settings.DEFAULT_SUBS_DELAY_STEP_MILLISECONDS
         self.default_volume: int = settings.DEFAULT_VOLUME
         self.default_aspect_ratio: str | None = settings.DEFAULT_ASPECT_RATIO
         self.media: Media | None = None
@@ -66,6 +67,7 @@ class Player:
         self.selected_subtitle_source: int | None = None
         self.current_volume: int = self.default_volume
         self.current_aspect_ratio: str | None = self.default_aspect_ratio
+        self.current_subs_delay: int = 0
         self._old_state = None
         self._playback_begins = False
         self._waiting_to_play = False
@@ -202,6 +204,7 @@ class Player:
         self.media = media
         self.auto_select_sources()
         self._waiting_to_play = play
+        self.current_subs_delay = 0
         self.reload()
         if play:
             self.play()
@@ -243,6 +246,22 @@ class Player:
         logger.info("Rewinding %d seconds", self.rewind_seconds)
         t = self.vlc_media_player.get_time()
         self.seek(t - 1000 * self.rewind_seconds)
+
+    def subs_delay_set(self, delay: int):
+        """
+        @param delay: delay in milliseconds, positive: later, negative: earlier
+        """
+        self.current_subs_delay = delay
+        self.vlc_media_player.video_set_spu_delay(self.current_subs_delay * 1000)
+
+    def subs_delay_later(self):
+        self.subs_delay_set(self.current_subs_delay + self.subs_delay_step_ms)
+
+    def subs_delay_earlier(self):
+        self.subs_delay_set(self.current_subs_delay - self.subs_delay_step_ms)
+
+    def subs_delay_reset(self):
+        self.subs_delay_set(0)
 
     def volume(self, value: int):
         """
@@ -313,7 +332,8 @@ class Player:
             "time": self.time,
             "state": self.state,
             "selected_audio_source": self.selected_audio_source,
-            "selected_subtitle_source": self.selected_subtitle_source
+            "selected_subtitle_source": self.selected_subtitle_source,
+            "delay": self.current_subs_delay,
         }
     
     def load_status_dict(self, status: dict, library: Library):
@@ -331,4 +351,5 @@ class Player:
                 self.play()
             self.seek(status.get("time", self.time))
         self.volume(status.get("current_volume", self.current_volume))
+        self.subs_delay_set(status.get("delay", self.current_subs_delay))
         self.aspect_ratio(status.get("current_aspect_ratio", self.current_aspect_ratio))

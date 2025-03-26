@@ -59,6 +59,9 @@ function connectWebsocket() {
             case "QUEU":
                 player.fetchQueue();
                 break;
+            case "SDEL":
+                player.setSubtitlesDelay(parseInt(value));
+                break;
         }
         websocket.send("PONG");
     };
@@ -161,6 +164,7 @@ class Player {
         this.audio = null;
         this.subs = null;
         this.volume = null;
+        this.subtitlesDelay = null;
         this.aspectRatio = null;
         this.autoplay = null;
         this.shuffle = null;
@@ -175,7 +179,8 @@ class Player {
         this.setTime(playerData.time, false);
         this.setAudio(playerData.audio, false);
         this.setSubs(playerData.subs, false);
-        this.setVolume(playerData.volume, false);
+        this.setVolume(playerData.volume);
+        this.setSubtitlesDelay(playerData.subtitlesDelay, false);
         this.setAutoplay(playerData.autoplay, false);
         this.setShuffle(playerData.shuffle, false);
         this.setCloseOnEnd(playerData.closeOnEnd, false);
@@ -312,6 +317,11 @@ class Player {
         if (notify) {
             websocket.send(`VOLU ${this.volume}`);
         }
+    }
+
+    setSubtitlesDelay(newDelay) {
+        this.subtitlesDelay = newDelay;
+        document.getElementById("player-subtitles-delay").textContent = `${this.subtitlesDelay.toFixed(0)} ms`;
     }
 
     setAspectRatio(newAspectRatio, notify=true) {
@@ -464,6 +474,18 @@ bindButton("button-rewind", () => {
 
 bindButton("button-fastforward", () => {
     websocket.send("FFWD");
+});
+
+bindButton("button-subs-delay-later", () => {
+    websocket.send("SLAT");
+});
+
+bindButton("button-subs-delay-earlier", () => {
+    websocket.send("SEAR");
+});
+
+bindButton("button-subs-delay-reset", () => {
+    websocket.send("SRST");
 });
 
 function displayVolume(volume) {

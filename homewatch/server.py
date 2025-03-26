@@ -116,6 +116,15 @@ class WebsocketServer(threading.Thread, PlayerObserver):
                 self.player.rewind()
             case "FFWD":
                 self.player.fastforward()
+            case "SLAT":
+                self.player.subs_delay_later()
+                self._broadcast(f"SDEL {self.player.current_subs_delay}")
+            case "SEAR":
+                self.player.subs_delay_earlier()
+                self._broadcast(f"SDEL {self.player.current_subs_delay}")
+            case "SRST":
+                self.player.subs_delay_reset()
+                self._broadcast(f"SDEL {self.player.current_subs_delay}")
             case "STOP":
                 self.player.stop()
             case "VOLU":
@@ -349,6 +358,7 @@ class PlayerServer(LibraryServer):
             "audio": self.theater.player.selected_audio_source,
             "subs": self.theater.player.selected_subtitle_source,
             "volume": self.theater.player.current_volume,
+            "subtitlesDelay": self.theater.player.current_subs_delay,
             "autoplay": self.theater.autoplay,
             "shuffle": self.theater.queue.shuffle,
             "closeOnEnd": self.wss.close_on_end,
