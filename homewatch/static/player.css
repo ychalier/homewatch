@@ -153,7 +153,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    background: #00000080;
+    background: #000000b0;
     width: 100vw;
     height: 100vh;
 }
@@ -246,6 +246,17 @@
 
 .queue-next {
     opacity: .9;
+}
+
+/**
+ * Component: panel-settings
+ */
+
+#panel-settings {
+    max-height: 70vh;
+    overflow: auto;
+    border-top: 1px solid #202020;
+    background-color: #060606;
 }
 
 /**
