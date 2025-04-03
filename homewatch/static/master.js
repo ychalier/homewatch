@@ -38,9 +38,13 @@ function formatDuration(totalSeconds, simplified=false) {
 }
 
 
-function loadAndPlay(path, seek=null, target="media") {
+function loadAndPlay(path, seek=null, target="media", queueIndex=null) {
     console.log("Loading and playing", path);
-    return fetch(`${API_URL}/load?path=${path}&target=${target}` + (seek==null ? "" : `&seek=${seek}`));
+    let queueArgument = "";
+    if (queueIndex != null) {
+        queueArgument = `&queue=` + queueIndex.join(",");
+    }
+    return fetch(`${API_URL}/load?path=${path}&target=${target}${queueArgument}` + (seek==null ? "" : `&seek=${seek}`));
 }
 
 

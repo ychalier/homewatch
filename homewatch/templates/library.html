@@ -92,7 +92,8 @@
                      {% if m.year %}year="{{ m.year }}"{% endif %}
                      duration="{{ m.duration_ms }}"
                      path="{{ url(library.path, m.basename)[1:] }}"
-                     href="{{ media(library.path, m.basename) }}">
+                     href="{{ media(library.path, m.basename) }}"
+                     index="{{ loop.index }}">
                     <div class="media-body">
                         <img class="media-poster" loading="lazy" src="{{ media(library.path, m.thumbnail) }}" />
                         <div class="media-overlay"></div>

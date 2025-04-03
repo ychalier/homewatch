@@ -324,8 +324,11 @@ class PlayerServer(LibraryServer):
         query = parse_qs(request.url)
         path = query.get("path", "")
         target = query.get("target", "media")
+        queue_index = query.get("queue", "").split(",")
+        if queue_index:
+            queue_index = list(map(int, queue_index))
         seek = int(query.get("seek", 0))
-        self.theater.load_and_play(path, seek, target)
+        self.theater.load_and_play(path, seek, target, queue_index)
         if target == "next":
             self.wss._broadcast("QUEU")
         return werkzeug.Response("OK", status=204, mimetype="text/plain")

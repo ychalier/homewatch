@@ -42,13 +42,21 @@ class Theater(PlayerObserver):
                 self.load_next()
             threading.Thread(target=callback).start()
     
-    def load_and_play(self, path: str, seek: int = 0, target: str = "media"):
+    def load_and_play(self, path: str, seek: int = 0, target: str = "media", queue: list[int] = []):
         logger.info("Loading \"%s\" with target %s", path, target)
         if target == "media":
             media = self.library.get_media(pathlib.Path(path))
+            queue_medias = [media.folder.medias[i] for i in queue]
+            first_index = None
+            for i, queue_media in enumerate(queue_medias):
+                if media.path == queue_media.path:
+                    first_index = i
+                    break
+            if first_index is None:
+                raise ValueError("Target media not in queue")
             self.queue.add(
-                media.folder.medias[:],
-                first_index=media.folder_index,
+                queue_medias,
+                first_index=first_index,
                 clear_first=True)
         elif target == "next":
             media = self.library.get_media(pathlib.Path(path))

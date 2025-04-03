@@ -68,10 +68,10 @@ function showMediaDetails(mediaElement) {
     if (PLAYERMODE) {
         const path = mediaElement.getAttribute("path");
         detailsElement.querySelector(".media-details-play").addEventListener("click", () => {
-            loadAndPlay(path).then(closeMediaDetails);
+            loadAndPlay(path, null, "media", getQueueIndex()).then(closeMediaDetails);
         });
         detailsElement.querySelector(".media-details-queue").addEventListener("click", () => {
-            loadAndPlay(path, null, "next").then(closeMediaDetails);
+            loadAndPlay(path, null, "next", null).then(closeMediaDetails);
         });
         const buttonResume = detailsElement.querySelector(".media-details-resume");
         const mediaProgress = mediaElement.querySelector("progress");
@@ -83,7 +83,7 @@ function showMediaDetails(mediaElement) {
             if (seek > 0 && seek < .98 * duration) {
                 buttonResume.textContent = `Reprendre (${formatDuration(seek / 1000)})`;
                 buttonResume.addEventListener("click", () => {
-                    loadAndPlay(path, seek).then(closeMediaDetails);
+                    loadAndPlay(path, seek, "media", getQueueIndex()).then(closeMediaDetails);
                 });
             } else {
                 remove(buttonResume);
@@ -109,6 +109,16 @@ function showMediaDetails(mediaElement) {
     detailsElement.querySelector(".modal-button-close").addEventListener("click", closeMediaDetails);
     detailsElement.querySelector(".modal-overlay").addEventListener("click", closeMediaDetails);
     document.body.appendChild(detailsElement);
+}
+
+
+function getQueueIndex() {
+    const mediaContainer = document.querySelector(".library-section.library-medias");
+    const queueIndex = [];
+    mediaContainer.querySelectorAll(".media").forEach(media => {
+        queueIndex.push(parseInt(media.getAttribute("index")) - 1);
+    });
+    return queueIndex;
 }
 
 
@@ -299,7 +309,7 @@ for (const mediaElement of document.querySelectorAll(".media")) {
 
 if (PLAYERMODE) {
     document.getElementById("button-play-folder").addEventListener("click", () => {
-        loadAndPlay(FOLDER, null, "folder");
+        loadAndPlay(FOLDER, null, "folder", null);
     });
     document.getElementById("button-viewed-folder").addEventListener("click", () => {
         if (confirm(`Marquer tous les éléments et sous-dossiers de ${ FOLDER } comme vus ?`)) {
@@ -314,7 +324,7 @@ if (PLAYERMODE) {
     for (const playlist of document.querySelectorAll(".playlist")) {
         playlist.addEventListener("click", () => {
             if (confirm(`Lire ${playlist.querySelector(".title").textContent} ?`)) {
-                loadAndPlay(playlist.getAttribute("path"), null, "playlist");
+                loadAndPlay(playlist.getAttribute("path"), null, "playlist", null);
             }
         });
     }
