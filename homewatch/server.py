@@ -324,7 +324,7 @@ class PlayerServer(LibraryServer):
         query = parse_qs(request.url)
         path = query.get("path", "")
         target = query.get("target", "media")
-        queue_index = query.get("queue", "").split(",")
+        queue_index = [x for x in query.get("queue", "").split(",") if x]
         if queue_index:
             queue_index = list(map(int, queue_index))
         seek = int(query.get("seek", 0))
