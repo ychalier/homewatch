@@ -115,7 +115,7 @@ function showMediaDetails(mediaElement) {
 function getQueueIndex() {
     const mediaContainer = document.querySelector(".library-section.library-medias");
     const queueIndex = [];
-    mediaContainer.querySelectorAll(".media").forEach(media => {
+    mediaContainer.querySelectorAll(".media-wrapper:not(.hidden) .media").forEach(media => {
         queueIndex.push(parseInt(media.getAttribute("index")) - 1);
     });
     return queueIndex;
