@@ -51,6 +51,19 @@ select,
     text-decoration: none;
 }
 
+button:hover,
+select:hover,
+.button:hover {
+    background: #202020;
+}
+
+button.disabled,
+.button.disabled {
+    pointer-events: none;
+    background: #444;
+    color: #888;
+}
+
 progress {
     display: block;
     border: none;

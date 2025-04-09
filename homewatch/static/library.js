@@ -51,6 +51,16 @@ function closeMediaDetails() {
     document.querySelectorAll(".modal-media-details").forEach(remove);
 }
 
+function setDisabledClass(elements, disabled) {
+    for (const element of elements) {
+        if (disabled) {
+            element.classList.add("disabled");
+        } else {
+            element.classList.remove("disabled");
+        }
+    }
+}
+
 
 function showMediaDetails(mediaElement) {
     const template = document.getElementById("template-media-details");
@@ -67,13 +77,24 @@ function showMediaDetails(mediaElement) {
     }
     if (PLAYERMODE) {
         const path = mediaElement.getAttribute("path");
-        detailsElement.querySelector(".media-details-play").addEventListener("click", () => {
-            loadAndPlay(path, null, "media", getQueueIndex()).then(closeMediaDetails);
-        });
-        detailsElement.querySelector(".media-details-queue").addEventListener("click", () => {
-            loadAndPlay(path, null, "next", null).then(closeMediaDetails);
-        });
+        const buttonPlay = detailsElement.querySelector(".media-details-play");
+        const buttonQueue = detailsElement.querySelector(".media-details-queue");
         const buttonResume = detailsElement.querySelector(".media-details-resume");
+        const buttons = [buttonPlay, buttonQueue, buttonResume];
+        buttonPlay.addEventListener("click", () => {
+            setDisabledClass(buttons, true);
+            loadAndPlay(path, null, "media", getQueueIndex()).then(() => {
+                setDisabledClass(buttons, false);
+                closeMediaDetails();
+            });
+        });
+        buttonQueue.addEventListener("click", () => {
+            setDisabledClass(buttons, true);
+            loadAndPlay(path, null, "next", null).then(() => {
+                setDisabledClass(buttons, false);
+                closeMediaDetails();
+            });
+        });
         const mediaProgress = mediaElement.querySelector("progress");
         const seek = parseInt(mediaProgress.value);
         const duration = parseInt(mediaProgress.max);
@@ -83,7 +104,11 @@ function showMediaDetails(mediaElement) {
             if (seek > 0 && seek < .98 * duration) {
                 buttonResume.textContent = `Reprendre (${formatDuration(seek / 1000)})`;
                 buttonResume.addEventListener("click", () => {
-                    loadAndPlay(path, seek, "media", getQueueIndex()).then(closeMediaDetails);
+                    setDisabledClass(buttons, true);
+                    loadAndPlay(path, seek, "media", getQueueIndex()).then(() => {
+                        setDisabledClass(buttons, false);
+                        closeMediaDetails();
+                    });
                 });
             } else {
                 remove(buttonResume);
