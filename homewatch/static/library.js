@@ -189,7 +189,7 @@ function extractSortKeyValue(mediaElement, sortKey) {
     let value;
     switch(sortKey) {
         case SORT_DEFAULT:
-            value = [null, null, null, null];
+            value = [null, null, null, null, null, null];
             if (mediaElement.hasAttribute("counter")) {
                 value[0] = parseInt(mediaElement.getAttribute("counter"));
             }
@@ -199,8 +199,14 @@ function extractSortKeyValue(mediaElement, sortKey) {
             if (mediaElement.hasAttribute("episode")) {
                 value[2] = parseInt(mediaElement.getAttribute("episode"));
             }
+            if (mediaElement.hasAttribute("director")) {
+                value[3] = mediaElement.getAttribute("director");
+            }
+            if (mediaElement.hasAttribute("year")) {
+                value[4] = mediaElement.getAttribute("year");
+            }
             if (mediaElement.hasAttribute("title")) {
-                value[3] = mediaElement.getAttribute("title");
+                value[5] = mediaElement.getAttribute("title");
             }
             break;
         case SORT_TITLE:
