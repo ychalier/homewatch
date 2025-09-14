@@ -111,11 +111,12 @@ class Theater(PlayerObserver):
         
     def set_folder_progress(self, library_folder: LibraryFolder):
         for media in library_folder.medias:
-            media.progress = self.history[media]
+            setattr(media, "progress", self.history[media])
         for subfolder in library_folder.subfolders:
             progress, duration = self.get_folder_progress(self.library.get_subfolder(library_folder, subfolder))
-            subfolder.progress = progress
-            subfolder.duration = duration
+            setattr(subfolder, "progress", progress)
+            setattr(subfolder, "duration", duration)
+            setattr(subfolder, "done", progress / duration >= 0.98)
 
     def set_viewed_media(self, media: Media, viewed: bool):
         if viewed:

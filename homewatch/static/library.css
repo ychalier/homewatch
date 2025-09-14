@@ -34,6 +34,12 @@
     color: inherit;
 }
 
+.library-element.subfolder.done {
+    background: #031026;
+    color: #888;
+    outline: 1px solid black;
+}
+
 .library-element.playlist {
     cursor: pointer;
     background: white;
