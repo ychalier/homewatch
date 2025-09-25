@@ -189,7 +189,7 @@ class Player {
     }
 
     fetchMedia() {
-        fetch(`${API_URL}/media?path=${this.mediaPath}`)
+        fetch(`${API_URL}/media?path=${this.mediaPath.replaceAll("&", "%26")}`)
             .then(res => res.json())
             .then(data => {
                 this.setMedia(data);

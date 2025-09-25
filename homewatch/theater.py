@@ -46,6 +46,8 @@ class Theater(PlayerObserver):
         logger.info("Loading \"%s\" with target %s", path, target)
         if target == "media":
             media = self.library.get_media(pathlib.Path(path))
+            if media is None:
+                raise ValueError(f"Media not found at path {path}")
             queue_medias = [media.folder.medias[i] for i in queue]
             first_index = None
             for i, queue_media in enumerate(queue_medias):

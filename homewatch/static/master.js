@@ -44,7 +44,7 @@ function loadAndPlay(path, seek=null, target="media", queueIndex=null) {
     if (queueIndex != null) {
         queueArgument = `&queue=` + queueIndex.join(",");
     }
-    return fetch(`${API_URL}/load?path=${path}&target=${target}${queueArgument}` + (seek==null ? "" : `&seek=${seek}`));
+    return fetch(`${API_URL}/load?path=${path.replaceAll("&", "%26")}&target=${target}${queueArgument}` + (seek==null ? "" : `&seek=${seek}`));
 }
 
 
