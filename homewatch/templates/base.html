@@ -37,7 +37,7 @@
         </div>
     </header>
     {% endblock header %}
-    {% block content %}{% endblock content %}
+    <div class="{% block baseclass %}{% endblock baseclass %}">{% block content %}{% endblock content %}</div>
 </body>
 
 </html>

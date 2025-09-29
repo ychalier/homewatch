@@ -238,7 +238,7 @@ class LibraryServer:
             text = json.dumps(library_folder.to_dict())
             return werkzeug.Response(text, status=200, mimetype="application/json")
         template = self.jinja.get_template("library.html")
-        text = template.render(library=library_folder, embedded=embedded)
+        text = template.render(library=library_folder, embedded=embedded, subfolder_prefix="library")
         self.jinja.globals.update(first_library_load=False)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
@@ -318,7 +318,23 @@ class PlayerServer(LibraryServer):
         return library_folder
     
     def view_player(self, request: werkzeug.Request):
-        return self.view_basic("player.html", wss_url=f"ws://{self.wss.host}:{self.wss.port}")
+        relpath = pathlib.Path(request.path[1:]).relative_to("player/")
+        query = parse_qs(request.url)
+        embedded = query.get("embedded") == "1"
+        library_folder = self._get_library_folder(relpath)
+        if library_folder is None:
+            return None
+        if relpath.name.endswith(".json"):
+            text = json.dumps(library_folder.to_dict())
+            return werkzeug.Response(text, status=200, mimetype="application/json")
+        template = self.jinja.get_template("player.html")
+        text = template.render(
+            library=library_folder,
+            embedded=embedded,
+            wss_url=f"ws://{self.wss.host}:{self.wss.port}",
+            subfolder_prefix="player")
+        self.jinja.globals.update(first_library_load=False)
+        return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def view_api_load(self, request: werkzeug.Request) -> werkzeug.Response:
         query = parse_qs(request.url)
@@ -404,26 +420,27 @@ class PlayerServer(LibraryServer):
         response = super().dispatch_request(request)
         if response is not None:
             return response
-        path = pathlib.Path(request.path[1:]).as_posix()
-        if path == "player":
+        path = pathlib.Path(request.path[1:])
+        path_posix = path.as_posix()
+        if path.is_relative_to("player/"):
             return self.view_player(request)
-        elif path == "api/load":
+        elif path_posix == "api/load":
             return self.view_api_load(request)
-        elif path == "api/media":
+        elif path_posix == "api/media":
             return self.view_api_media(request)
-        elif path == "api/player":
+        elif path_posix == "api/player":
             return self.view_api_player(request)
-        elif path == "api/history":
+        elif path_posix == "api/history":
             return self.view_api_history(request)
-        elif path == "api/queue":
+        elif path_posix == "api/queue":
             return self.view_api_queue(request)
-        elif path == "api/close":
+        elif path_posix == "api/close":
             return self.view_api_close(request)
-        elif path == "api/status/read":
+        elif path_posix == "api/status/read":
             return self.view_api_read_status(request)
-        elif path == "api/status/load":
+        elif path_posix == "api/status/load":
             return self.view_api_load_status(request)
-        elif path == "api/status/export":
+        elif path_posix == "api/status/export":
             return self.view_api_export_status(request)
         return None
 

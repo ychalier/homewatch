@@ -21,7 +21,7 @@
 
 {% block navbar_items %}
 {% if library.name %}
-<a class="navbar-item" href="{{ url('library', library.parent) }}"><i class="icon icon-arrow-left"></i></a>
+<a class="navbar-item" href="{{ url(subfolder_prefix, library.parent) }}"><i class="icon icon-arrow-left"></i></a>
 <span class="navbar-item">{{ library.name | title }}</span>
 {% else %}
 <span class="navbar-item">Bibliothèque</span>
@@ -45,7 +45,7 @@
     {% if library.subfolders or library.playlists %}
     <div class="library-section">
         {% for subfolder in library.subfolders %}
-        <a class="library-element subfolder {% if playermode and subfolder.done %}done{% endif %}" href="{{ url('library', library.path, subfolder.basename) }}">
+        <a class="library-element subfolder {% if playermode and subfolder.done %}done{% endif %}" href="{{ url(subfolder_prefix, library.path, subfolder.basename) }}">
             <div class="subtitle">
                 {% for part in subfolder.subtitle %}
                 <span class="subtitle-item">{{ part }}</span>
