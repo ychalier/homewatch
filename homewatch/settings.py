@@ -5,6 +5,7 @@ VLC_DLL_DIRECTORY on Windows.
 
 import enum
 import os
+from pathlib import Path
 
 # ====================== #
 # Media library settings #
@@ -113,3 +114,10 @@ LANGUAGE_FLAGS = {
 }
 PREFERRED_MEDIA_LANGUAGE_CODES = LANGUAGE_CODES[PREFERRED_MEDIA_LANGUAGE]
 PREFERRED_MEDIA_LANGUAGE_FLAG = LANGUAGE_FLAGS[PREFERRED_MEDIA_LANGUAGE]
+
+# =================== #
+# Web Player settings #
+# =================== #
+
+GECKODRIVER_PATH = Path("geckodriver.exe")
+EXTENSIONS_DIR = Path(".extensions")

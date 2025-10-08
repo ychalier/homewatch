@@ -19,6 +19,7 @@ import werkzeug.serving
 from .library import LibraryFolder, Hierarchy
 from .theater import Theater
 from .player import Player, PlayerObserver
+from .web import WebPlayer
 from . import settings
 
 
@@ -279,6 +280,7 @@ class PlayerServer(LibraryServer):
         self.theater = Theater()
         self.wss = WebsocketServer(self, address)
         self.wss.start()
+        self.web_player: WebPlayer | None = None
         for hook_path in settings.PRE_HOOKS:
             execute_hook(hook_path)
 
@@ -323,7 +325,7 @@ class PlayerServer(LibraryServer):
         embedded = query.get("embedded") == "1"
         library_folder = self._get_library_folder(relpath)
         if library_folder is None:
-            return None
+            return werkzeug.Response("404 Not Found", status=404, mimetype="application/json")
         if relpath.name.endswith(".json"):
             text = json.dumps(library_folder.to_dict())
             return werkzeug.Response(text, status=200, mimetype="application/json")
@@ -334,6 +336,18 @@ class PlayerServer(LibraryServer):
             wss_url=f"ws://{self.wss.host}:{self.wss.port}",
             subfolder_prefix="player")
         self.jinja.globals.update(first_library_load=False)
+        return werkzeug.Response(text, status=200, mimetype="text/html")
+
+    def view_web(self, request: werkzeug.Request) -> werkzeug.Response:
+        if request.method == "POST":
+            url = request.form.get("url")
+            if url is None:
+                return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
+            if self.web_player is None:
+                self.web_player = WebPlayer()
+            self.web_player.load(url)
+        template = self.jinja.get_template("web.html")
+        text = template.render(player=self.web_player)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def view_api_load(self, request: werkzeug.Request) -> werkzeug.Response:
@@ -361,7 +375,7 @@ class PlayerServer(LibraryServer):
             viewed = query["viewed"] == "1"
             self.theater.set_viewed_path(path, viewed)
             return werkzeug.Response("OK", status=204, mimetype="text/plain")
-        return  werkzeug.Response("405 Method Not Allowed", status=405, mimetype="text/plain")
+        return werkzeug.Response("405 Method Not Allowed", status=405, mimetype="text/plain")
 
     def view_api_media(self, request: werkzeug.Request) -> werkzeug.Response:
         path = parse_qs(request.url)["path"]
@@ -416,6 +430,58 @@ class PlayerServer(LibraryServer):
         text = json.dumps(data)
         return werkzeug.Response(text, status=200, mimetype="application/json")
     
+    def view_api_web(self, request: werkzeug.Request) -> werkzeug.Response:
+        query = parse_qs(request.url)
+        action = query.get("action")
+        if self.web_player is None:
+            return werkzeug.Response("403 Forbidden", status=403, mimetype="text/plain")
+        if action == "play":
+            self.web_player.toggle_play_pause()
+        elif action == "fullscreen":
+            self.web_player.toggle_fullscreen()
+        elif action == "mute":
+            self.web_player.toggle_mute()
+        elif action == "prev":
+            self.web_player.load_prev()
+        elif action == "next":
+            self.web_player.load_next()
+        elif action == "rewind":
+            self.web_player.seek_backward()
+        elif action == "forward":
+            self.web_player.seek_forward()
+        elif action == "volume-up":
+            self.web_player.increase_volume()
+        elif action == "volume-down":
+            self.web_player.decrease_volume()
+        elif action == "home":
+            self.web_player.seek_beginning()
+        elif action == "seek-1":
+            self.web_player.seek_1()
+        elif action == "seek-2":
+            self.web_player.seek_2()
+        elif action == "seek-3":
+            self.web_player.seek_3()
+        elif action == "seek-4":
+            self.web_player.seek_4()
+        elif action == "seek-5":
+            self.web_player.seek_5()
+        elif action == "seek-6":
+            self.web_player.seek_6()
+        elif action == "seek-7":
+            self.web_player.seek_7()
+        elif action == "seek-8":
+            self.web_player.seek_8()
+        elif action == "seek-9":
+            self.web_player.seek_9()
+        elif action == "captions":
+            self.web_player.toggle_captions()
+        elif action == "close":
+            self.web_player.close()
+            self.web_player = None
+        else:
+            return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
+        return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
+
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
         response = super().dispatch_request(request)
         if response is not None:
@@ -424,6 +490,8 @@ class PlayerServer(LibraryServer):
         path_posix = path.as_posix()
         if path.is_relative_to("player/"):
             return self.view_player(request)
+        elif path_posix == "web":
+            return self.view_web(request)
         elif path_posix == "api/load":
             return self.view_api_load(request)
         elif path_posix == "api/media":
@@ -442,7 +510,9 @@ class PlayerServer(LibraryServer):
             return self.view_api_load_status(request)
         elif path_posix == "api/status/export":
             return self.view_api_export_status(request)
-        return None
+        elif path_posix == "api/web":
+            return self.view_api_web(request)
+        return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
 
 
 def create_app(hostname: str = "127.0.0.1", with_static: bool = True):

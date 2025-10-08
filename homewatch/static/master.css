@@ -74,6 +74,21 @@ progress::-moz-progress-bar {
     background: royalblue;
 }
 
+input {
+    font: inherit;
+    background-color: #3b3b3b;
+    color: white;
+    border: none;
+    border-radius: .2rem;
+    padding: .2rem;
+}
+
+input:focus,
+input:active {
+    outline-color: royalblue;
+    outline-style: solid;
+}
+
 input[type="range"] {
     border: none;
     background-color: #3b3b3b;

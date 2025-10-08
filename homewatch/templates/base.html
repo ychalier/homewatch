@@ -28,6 +28,7 @@
             <div class="menu-items">
                 {% block navbar_menu %}
                 {% if playermode %}
+                <a class="menu-item" href="{{ url('web') }}">Web</a>
                 <a class="menu-item" href="{{ url('api', 'close') }}?hooks=0">Éteindre le serveur</a>
                 <a class="menu-item" href="{{ url('api', 'close') }}?hooks=1">Éteindre et exécuter les scripts</a>
                 {% endif %}

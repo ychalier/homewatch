@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Lecteur Web ∣ {{ super() }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ static('player.css') }}" />
+{% endblock styles %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ static('web.js') }}"></script>
+<script>
+    const API_URL = "{{ url('api', 'web') }}";
+</script>
+{% endblock scripts %}
+
+{% block content %}
+
+<div class="container">
+
+    <form method="post" action="">
+        <p>
+            <input type="url" name="url" placeholder="https://youtu.be/" />
+            <button>Charger</button><br>
+            <span class="subtitle">Coller ici une URL YouTube ou Twitch.</span>
+        </p>
+    </form>
+
+    <p>{% if player %}{{ player.title }}{% else %}Lecteur éteint{% endif %}</p>
+
+    <p>
+        <button class="button-action" action="prev" class="button-icon"><i class="icon icon-prev"></i></button>
+        <button class="button-action" action="rewind" class="button-icon"><i class="icon icon-rewind"></i></button>
+        <button class="button-action" action="play" class="button-icon button-icon-xl"><i class="icon icon-play"></i></button>
+        <button class="button-action" action="fastforward" class="button-icon"><i class="icon icon-fastforward"></i></button>
+        <button class="button-action" action="next" class="button-icon"><i class="icon icon-next"></i></button>
+    </p>
+
+    <p>
+        <button class="button-action" action="mute" class="button-icon"><i class="icon icon-volume-off"></i></button>
+        <button class="button-action" action="volume-down" class="button-icon"><i class="icon icon-volume-min"></i></button>
+        <button class="button-action" action="volume-up" class="button-icon"><i class="icon icon-volume-max"></i></button>
+        <button class="button-action" action="fullscreen"><i class="icon icon-expand"></i></button>
+        <button class="button-action" action="captions"><i class="icon icon-language"></i></button>
+        <button class="button-action" action="close"><i class="icon icon-media-stop"></i></button>
+    </p>
+
+    <p>
+        <button class="button-action" action="home" class="button-icon">0</button>
+        <button class="button-action" action="seek-1" class="button-icon">1</button>
+        <button class="button-action" action="seek-2" class="button-icon">2</button>
+        <button class="button-action" action="seek-3" class="button-icon">3</button>
+        <button class="button-action" action="seek-4" class="button-icon">4</button>
+        <button class="button-action" action="seek-5" class="button-icon">5</button>
+        <button class="button-action" action="seek-6" class="button-icon">6</button>
+        <button class="button-action" action="seek-7" class="button-icon">7</button>
+        <button class="button-action" action="seek-8" class="button-icon">8</button>
+        <button class="button-action" action="seek-9" class="button-icon">9</button>
+    </p>
+
+</div>
+
+{% endblock content %}
