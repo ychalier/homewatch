@@ -73,6 +73,7 @@ class Player:
         self._waiting_to_play = False
         self._waiting_to_pause = False
         self._waiting_to_stop = False
+        self.waiting_screen_visible: bool = False
 
     @property
     def media_path(self) -> str | None:
@@ -163,8 +164,9 @@ class Player:
         logger.info("Playback begins")
         self.volume(self.current_volume)
         self.aspect_ratio(self.current_aspect_ratio)
-        self.set_audio_source(self.selected_audio_source)
-        self.set_subtitle_source(self.selected_subtitle_source)
+        if not self.waiting_screen_visible:
+            self.set_audio_source(self.selected_audio_source)
+            self.set_subtitle_source(self.selected_subtitle_source)
         if self._waiting_to_pause:
             logger.info("Player is playing _waiting_to_pause is True, toggling pause now")
             self._waiting_to_pause = False
@@ -353,3 +355,19 @@ class Player:
         self.volume(status.get("current_volume", self.current_volume))
         self.subs_delay_set(status.get("delay", self.current_subs_delay))
         self.aspect_ratio(status.get("current_aspect_ratio", self.current_aspect_ratio))
+    
+    def show_waiting_screen(self):
+        self.waiting_screen_visible = True
+        if self.vlc_media is not None:
+            self.vlc_media.release()
+        path = pathlib.Path(__file__).parent.parent / "sample" / "waiting-screen.mp4"
+        mrl = path.as_uri()
+        logger.info("Loading waiting screen from MRL \"%s\"", mrl)
+        self.vlc_media = self.vlc_instance.media_new(mrl)
+        self.vlc_media_player.set_media(self.vlc_media)
+        self.vlc_media_player.play()
+        self._playback_begins = True
+
+    def hide_waiting_screen(self):
+        self.waiting_screen_visible = False
+        self.vlc_media_player.stop()

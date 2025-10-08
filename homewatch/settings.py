@@ -88,6 +88,9 @@ HISTORY_PATH = "history"
 # File path to export theater status
 STATUS_PATH = "status.json"
 
+# Enable waiting screen at startup
+SHOW_WAITING_SCREEN_AT_STARTUP = True
+
 # Default settings
 DEFAULT_AUTOPLAY = True
 DEFAULT_SHUFFLE = False
@@ -119,5 +122,10 @@ PREFERRED_MEDIA_LANGUAGE_FLAG = LANGUAGE_FLAGS[PREFERRED_MEDIA_LANGUAGE]
 # Web Player settings #
 # =================== #
 
+# Path to geckodriver executable
+# Download from https://github.com/mozilla/geckodriver/releases
 GECKODRIVER_PATH = Path("geckodriver.exe")
+
+# Web player will download and install Firefox extensions,
+# and store them in this directory as .xpi file.
 EXTENSIONS_DIR = Path(".extensions")

@@ -24,25 +24,34 @@ class Theater(PlayerObserver):
         self.player.setup()
         self.player.bind_observer(self)
         self.autoplay = settings.DEFAULT_AUTOPLAY
-    
+        self.waiting_screen_visible: bool = False
+
     def load_current(self):
         media = self.queue.current_media
         logger.info("Loading media at %s", media.path)
         self.player.load(media, play=True)
 
     def on_time_changed(self, new_time: int):
-        if new_time is not None and new_time >= 0:
+        if new_time is not None and new_time >= 0 and not self.waiting_screen_visible:
             self.history.update(self.queue.current_media, new_time)
 
     def on_media_state_changed(self, new_state: int):
-        if new_state == Player.STATE_ENDED and self.autoplay:
+        if new_state == Player.STATE_ENDED and self.waiting_screen_visible:
+            def callback():
+                time.sleep(.1)
+                logger.info("Reloading waiting screen")
+                self.show_waiting_screen()
+            threading.Thread(target=callback).start()
+        elif new_state == Player.STATE_ENDED and self.autoplay:
             def callback():
                 time.sleep(.1)
                 logger.info("Autoplay is on, loading next media")
                 self.load_next()
             threading.Thread(target=callback).start()
-    
+
     def load_and_play(self, path: str, seek: int = 0, target: str = "media", queue: list[int] = []):
+        if self.waiting_screen_visible:
+            self.hide_waiting_screen()
         logger.info("Loading \"%s\" with target %s", path, target)
         if target == "media":
             media = self.library.get_media(pathlib.Path(path))
@@ -77,14 +86,18 @@ class Theater(PlayerObserver):
         self.load_current()
         if seek > 0:
             self.player.seek(seek)
-    
+
     def jump_to(self, i):
         logger.debug("Jumping in queue to %d", i)
+        if self.waiting_screen_visible:
+            self.hide_waiting_screen()
         self.queue.jump_to(i)
         self.load_current()
 
     def load_prev(self):
         logger.info("Loading previous element")
+        if self.waiting_screen_visible:
+            self.hide_waiting_screen()
         try:
             self.queue.prev()
             self.load_current()
@@ -93,12 +106,14 @@ class Theater(PlayerObserver):
 
     def load_next(self):
         logger.info("Loading next element")
+        if self.waiting_screen_visible:
+            self.hide_waiting_screen()
         try:
             self.queue.next()
             self.load_current()
         except EndOfQueueException:
             pass
-    
+
     def get_folder_progress(self, library_folder: LibraryFolder) -> tuple[int, int]:
         progress, duration = 0, 0
         for media in library_folder.medias:
@@ -110,7 +125,7 @@ class Theater(PlayerObserver):
             progress += subprogress
             duration += subduration
         return progress, duration
-        
+
     def set_folder_progress(self, library_folder: LibraryFolder):
         for media in library_folder.medias:
             setattr(media, "progress", self.history[media])
@@ -151,10 +166,19 @@ class Theater(PlayerObserver):
             "now": int(time.time() * 1000),
             "autoplay": self.autoplay,
             "queue": self.queue.get_status_dict(),
-            "player": self.player.get_status_dict()
+            "player": self.player.get_status_dict(),
+            "waitingScreen": self.waiting_screen_visible
         }
-    
+
     def load_status_dict(self, status: dict):
         self.autoplay = status.get("autoplay", self.autoplay)
         self.queue.load_status_dict(status.get("queue", {}), self.library)
         self.player.load_status_dict(status.get("player", {}), self.library)
+
+    def show_waiting_screen(self):
+        self.player.show_waiting_screen()
+        self.waiting_screen_visible = True
+
+    def hide_waiting_screen(self):
+        self.player.hide_waiting_screen()
+        self.waiting_screen_visible = False

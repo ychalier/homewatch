@@ -55,7 +55,7 @@ class SleepWatcher(threading.Thread):
     def __init__(self, server: "WebsocketServer"):
         threading.Thread.__init__(self, daemon=True)
         self.server = server
-    
+
     def run(self):
         while True:
             if self.server.sleep_at is not None and time.time() > self.server.sleep_at:
@@ -80,26 +80,26 @@ class WebsocketServer(threading.Thread, PlayerObserver):
         self.player.bind_observer(self)
         self.sleep_watcher = SleepWatcher(self)
         self.sleep_watcher.start()
-    
+
     def on_time_changed(self, new_time: int):
         self._broadcast(f"TIME {new_time}")
-    
+
     def on_media_changed(self, media_path: str):
         self._broadcast(f"MPTH {media_path}")
-    
+
     def on_media_state_changed(self, new_state: int):
         self._broadcast(f"MSTT {new_state}")
         if new_state == Player.STATE_ENDED and self.close_on_end:
             self.close()
-    
+
     def close(self):
         logger.info("Closing websocket server")
         self.server.close(hooks=True)
-    
+
     def _broadcast(self, message: str):
         logger.debug("Broadcasting %s", message)
         websockets.broadcast(self.connections, message)
-    
+
     def _on_client_message(self, websocket, message: str):
         logger.debug("Websocket %s \"%s\"", websocket.id.hex, message)
         if message == "PONG":
@@ -201,33 +201,33 @@ class LibraryServer:
             preferred_media_language_flag=settings.PREFERRED_MEDIA_LANGUAGE_FLAG,
             first_library_load=True,
         )
-    
+
     def _get_landing_redirection_target(self) -> str:
         return "library"
-    
+
     def _get_library_folder(self, relpath: pathlib.Path) -> LibraryFolder:
         return LibraryFolder.from_settings(relpath.parent if relpath.name in {"index.html", "index.json"} else relpath)
-    
+
     def view_landing(self, request: werkzeug.Request):
         return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
             "Location": urljoin(
             request.host_url + settings.HOME_URL,
             self._get_landing_redirection_target())
         })
-    
+
     def view_player(self, request: werkzeug.Request) -> werkzeug.Response:
         return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
             "Location": urljoin( request.host_url + settings.HOME_URL, "library")
         })
-    
+
     def view_basic(self, template_name, **kwargs):
         template = self.jinja.get_template(template_name)
         text = template.render(**kwargs)
         return werkzeug.Response(text, status=200, mimetype="text/html")
-    
+
     def view_about(self, request: werkzeug.Request):
         return self.view_basic("about.html")
-    
+
     def view_library(self, request: werkzeug.Request):
         relpath = pathlib.Path(request.path[1:]).relative_to("library/")
         query = parse_qs(request.url)
@@ -274,7 +274,7 @@ class LibraryServer:
 
 
 class PlayerServer(LibraryServer):
-    
+
     def __init__(self, address: str):
         LibraryServer.__init__(self)
         self.theater = Theater()
@@ -283,6 +283,8 @@ class PlayerServer(LibraryServer):
         self.web_player: WebPlayer | None = None
         for hook_path in settings.PRE_HOOKS:
             execute_hook(hook_path)
+        if settings.SHOW_WAITING_SCREEN_AT_STARTUP:
+            self.theater.show_waiting_screen()
 
     def export_status(self) -> dict:
         data = self.theater.get_status_dict()
@@ -290,7 +292,7 @@ class PlayerServer(LibraryServer):
             with open(settings.STATUS_PATH, "w") as file:
                 json.dump(data, file)
         return data
-    
+
     def read_status(self) -> dict | None:
         if settings.STATUS_PATH and os.path.isfile(settings.STATUS_PATH):
             logger.info("Loading status from %s", settings.STATUS_PATH)
@@ -318,7 +320,7 @@ class PlayerServer(LibraryServer):
             return None
         self.theater.set_folder_progress(library_folder)
         return library_folder
-    
+
     def view_player(self, request: werkzeug.Request):
         relpath = pathlib.Path(request.path[1:]).relative_to("player/")
         query = parse_qs(request.url)
@@ -362,7 +364,7 @@ class PlayerServer(LibraryServer):
         if target == "next":
             self.wss._broadcast("QUEU")
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
-    
+
     def view_api_history(self, request: werkzeug.Request) -> werkzeug.Response:
         if request.method == "GET":
             query = parse_qs(request.url)
@@ -382,7 +384,7 @@ class PlayerServer(LibraryServer):
         media_details = self.theater.library.get_media(pathlib.Path(path)).to_fulldict()
         text = json.dumps(media_details)
         return werkzeug.Response(text, status=200, mimetype="application/json")
-    
+
     def view_api_player(self, request: werkzeug.Request) -> werkzeug.Response:
         data = {
             "mediaPath": self.theater.player.media_path,
@@ -405,7 +407,7 @@ class PlayerServer(LibraryServer):
         data = self.theater.queue.to_dict()
         text = json.dumps(data)
         return werkzeug.Response(text, status=200, mimetype="application/json")
-    
+
     def view_api_close(self, request: werkzeug.Request) -> werkzeug.Response:
         hooks = bool(int(parse_qs(request.url).get("hooks", 0)))
         def callback():
@@ -413,23 +415,23 @@ class PlayerServer(LibraryServer):
             self.close(hooks)
         threading.Thread(target=callback).start()
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
-    
+
     def view_api_read_status(self, request: werkzeug.Request) -> werkzeug.Response:
         status = self.read_status()
         text = json.dumps(status)
         return werkzeug.Response(text, status=200, mimetype="application/json")
-    
+
     def view_api_load_status(self, request: werkzeug.Request) -> werkzeug.Response:
         status = self.read_status()
         if status is not None:
             self.theater.load_status_dict(status)
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
-    
+
     def view_api_export_status(self, request: werkzeug.Request) -> werkzeug.Response:
         data = self.export_status()
         text = json.dumps(data)
         return werkzeug.Response(text, status=200, mimetype="application/json")
-    
+
     def view_api_web(self, request: werkzeug.Request) -> werkzeug.Response:
         query = parse_qs(request.url)
         action = query.get("action")

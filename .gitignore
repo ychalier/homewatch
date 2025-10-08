@@ -12,6 +12,7 @@ sample
 !sample/Sintel (Blender Foundation, 2010).en.srt
 !sample/Sintel (Blender Foundation, 2010).fr.srt
 !sample/Sintel (Blender Foundation, 2010).mp4
+!sample/waiting-screen.mp4
 
 .extensions
 geckodriver*
