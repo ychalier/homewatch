@@ -5,6 +5,7 @@ VLC_DLL_DIRECTORY on Windows.
 
 import enum
 import os
+import sys
 from pathlib import Path
 
 # ====================== #
@@ -124,8 +125,11 @@ PREFERRED_MEDIA_LANGUAGE_FLAG = LANGUAGE_FLAGS[PREFERRED_MEDIA_LANGUAGE]
 
 # Path to geckodriver executable
 # Download from https://github.com/mozilla/geckodriver/releases
-GECKODRIVER_PATH = Path("geckodriver.exe")
+GECKODRIVER_PATH = Path("geckodriver.exe") if sys.platform == "win32" else Path("geckodriver")
+
+# Path to Firefox executable
+FIREFOX_PATH = Path("C:/Program Files/Mozilla Firefox/firefox.exe") if sys.platform == "win32" else Path("/usr/bin/firefox")
 
 # Web player will download and install Firefox extensions,
 # and store them in this directory as .xpi file.
-EXTENSIONS_DIR = Path(".extensions")
+ADDONS_DIR = Path(".extensions")

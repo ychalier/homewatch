@@ -345,6 +345,7 @@ class PlayerServer(LibraryServer):
             url = request.form.get("url")
             if url is None:
                 return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
+            self.theater.hide_waiting_screen()
             if self.web_player is None:
                 self.web_player = WebPlayer()
             self.web_player.load(url)
@@ -433,55 +434,17 @@ class PlayerServer(LibraryServer):
         return werkzeug.Response(text, status=200, mimetype="application/json")
 
     def view_api_web(self, request: werkzeug.Request) -> werkzeug.Response:
-        query = parse_qs(request.url)
-        action = query.get("action")
         if self.web_player is None:
             return werkzeug.Response("403 Forbidden", status=403, mimetype="text/plain")
-        if action == "play":
-            self.web_player.toggle_play_pause()
-        elif action == "fullscreen":
-            self.web_player.toggle_fullscreen()
-        elif action == "mute":
-            self.web_player.toggle_mute()
-        elif action == "prev":
-            self.web_player.load_prev()
-        elif action == "next":
-            self.web_player.load_next()
-        elif action == "rewind":
-            self.web_player.seek_backward()
-        elif action == "forward":
-            self.web_player.seek_forward()
-        elif action == "volume-up":
-            self.web_player.increase_volume()
-        elif action == "volume-down":
-            self.web_player.decrease_volume()
-        elif action == "home":
-            self.web_player.seek_beginning()
-        elif action == "seek-1":
-            self.web_player.seek_1()
-        elif action == "seek-2":
-            self.web_player.seek_2()
-        elif action == "seek-3":
-            self.web_player.seek_3()
-        elif action == "seek-4":
-            self.web_player.seek_4()
-        elif action == "seek-5":
-            self.web_player.seek_5()
-        elif action == "seek-6":
-            self.web_player.seek_6()
-        elif action == "seek-7":
-            self.web_player.seek_7()
-        elif action == "seek-8":
-            self.web_player.seek_8()
-        elif action == "seek-9":
-            self.web_player.seek_9()
-        elif action == "captions":
-            self.web_player.toggle_captions()
-        elif action == "close":
+        query = parse_qs(request.url)
+        action = query.get("action")
+        if action is None:
+            return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
+        if action == "close":
             self.web_player.close()
             self.web_player = None
-        else:
-            return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
+        else:        
+            self.web_player.execute_action(action)
         return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
 
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
