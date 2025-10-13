@@ -161,7 +161,7 @@ def extract_youtube_id(url: str) -> str | None:
         query = parse_qs(parsed.query)
         if "v" in query:
             return query["v"][0]
-        match = re.match(r"^/(embed|shorts)/([^/?#&]+)", parsed.path)
+        match = re.match(r"^/(embed|shorts|live)/([^/?#&]+)", parsed.path)
         if match:
             return match.group(2)
     if parsed.hostname in ("youtu.be",):
