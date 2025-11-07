@@ -27,18 +27,55 @@
             <span class="menu-icon"><i class="icon icon-vdots"></i></span>
             <div class="menu-items">
                 {% block navbar_menu %}
-                {% if playermode %}
-                <a class="menu-item" href="{{ url('web') }}">Web</a>
-                <a class="menu-item" href="{{ url('api', 'close') }}?hooks=0">Éteindre le serveur</a>
-                <a class="menu-item" href="{{ url('api', 'close') }}?hooks=1">Éteindre et exécuter les scripts</a>
-                {% endif %}
                 <a class="menu-item" href="{{ url('about') }}">À propos</a>
+                {% if playermode %}
+                <hr>
+                <a class="menu-item" id="link-waiting-screen">Écran d'attente</a>
+                <a class="menu-item" href="{{ url('web') }}">Lecteur web</a>
+                <a class="menu-item" id="link-shutdown">Éteindre</a>
+                {% endif %}
                 {% endblock navbar_menu %}
             </div>
         </div>
     </header>
     {% endblock header %}
     <div class="{% block baseclass %}{% endblock baseclass %}">{% block content %}{% endblock content %}</div>
+
+{% if playermode %}
+<template id="template-modal-shutdown">
+    <div class="modal modal-shutdown">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <img class="modal-background" />
+            <button class="modal-button-close"><i class="icon icon-cross"></i></button>
+            <div class="modal-body">
+                <div class="modal-buttons">
+                    <button href="{{ url('api', 'close') }}?hooks=0">Éteindre le serveur</button>
+                    <button href="{{ url('api', 'close') }}?hooks=1">Éteindre et exécuter les scripts</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="template-modal-waiting-screen">
+    <div class="modal modal-waiting-screen">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <img class="modal-background" />
+            <button class="modal-button-close"><i class="icon icon-cross"></i></button>
+            <div class="modal-body">
+                <h4>Écran de veille</h4>
+                <div class="modal-buttons">
+                    <button href="{{ url('api', 'wait') }}?show=1">Afficher</button>
+                    <button href="{{ url('api', 'wait') }}?show=0">Masquer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+{% endif %}
+
 </body>
 
 </html>

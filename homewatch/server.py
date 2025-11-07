@@ -447,6 +447,15 @@ class PlayerServer(LibraryServer):
             self.web_player.execute_action(action)
         return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
 
+    def view_api_wait(self, request: werkzeug.Request) -> werkzeug.Response:
+        query = parse_qs(request.url)
+        show = query.get("show", "0")
+        if show == "0":
+            self.theater.player.hide_waiting_screen()
+        else:
+            self.theater.player.show_waiting_screen()
+        return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
+
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
         response = super().dispatch_request(request)
         if response is not None:
@@ -477,6 +486,8 @@ class PlayerServer(LibraryServer):
             return self.view_api_export_status(request)
         elif path_posix == "api/web":
             return self.view_api_web(request)
+        elif path_posix == "api/wait":
+            return self.view_api_wait(request)
         return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
 
 

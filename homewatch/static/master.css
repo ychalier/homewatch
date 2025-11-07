@@ -1,4 +1,6 @@
 @import url("https://cdn.jsdelivr.net/npm/@xz/fonts@1/serve/fira-sans.min.css");
+@import url("https://cdn.jsdelivr.net/npm/@xz/fonts@1/serve/fira-code.min.css");
+
 
 /**
  * Theme
@@ -14,8 +16,8 @@ html {
 body {
     padding: 0;
     margin: 0;
-    background: #060606;
-    color: white;
+    background: #101010;
+    color: #f0f0f0;
     font-family: "Fira Sans", sans-serif;
     font-display: swap;
     width: 100vw;
@@ -31,7 +33,7 @@ p {
 }
 
 code {
-    background: #202020;
+    background: #283244;
     font: inherit;
     padding: 0 .2rem;
     border-radius: .2rem;
@@ -40,7 +42,7 @@ code {
 button,
 select,
 .button {
-    background: #101010;
+    background: #283244;
     color: white;
     border: 1px solid #0d0d0d;
     padding: .4rem;
@@ -53,8 +55,9 @@ select,
 
 button:hover,
 select:hover,
-.button:hover {
-    background: #202020;
+.button:hover,
+.library-filter {
+    background: #1e2633;
 }
 
 button.disabled,
@@ -71,13 +74,13 @@ progress {
 }
 
 progress::-moz-progress-bar {
-    background: royalblue;
+    background: #38369A;
 }
 
 input {
     font: inherit;
     background-color: #3b3b3b;
-    color: white;
+    color: #f0f0f0;
     border: none;
     border-radius: .2rem;
     padding: .2rem;
@@ -85,23 +88,23 @@ input {
 
 input:focus,
 input:active {
-    outline-color: royalblue;
+    outline-color: #38369A;
     outline-style: solid;
 }
 
 input[type="range"] {
     border: none;
     background-color: #3b3b3b;
-    accent-color: royalblue;
+    accent-color: #38369A;
 }
 
 input[type="range"]::-moz-range-progress {
-    background-color: royalblue;
+    background-color: #38369A;
 }
 
 input[type="range"]::-moz-range-thumb {
     background-color: #676774;
-    border: 2px solid white;
+    border: 2px solid #f0f0f0;
     border-radius: 50%;
 }
 
@@ -291,6 +294,10 @@ input[type="range"]::-moz-range-track {
     padding: 0 1rem;
 }
 
+.container-text {
+    max-width: min(100%, 540px);
+}
+
 .title {
     text-transform: capitalize;
 }
@@ -305,7 +312,7 @@ input[type="range"]::-moz-range-track {
 
  .navbar {
     height: 3em;
-    background: #101010;
+    background: linear-gradient(175deg, #38369A, #283244);
     width: 100vw;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -316,7 +323,7 @@ input[type="range"]::-moz-range-track {
     justify-content: space-between;
     align-items: center;
     padding: 0 1rem;
-    border-bottom: 1px solid black;
+    border-bottom: 1px solid #181e28;
 }
 
 .navbar-items {
@@ -382,8 +389,10 @@ input[type="range"]::-moz-range-track {
     background: #303030;
 }
 
-.menu-item + .menu-item {
-    border-top: 1px solid #3b3b3b;
+.menu hr {
+    margin: 0;
+    width: 100%;
+    border: 1px solid #3b3b3b;
 }
 
 .menu.active .menu-items {

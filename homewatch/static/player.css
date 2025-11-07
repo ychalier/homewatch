@@ -8,7 +8,7 @@
 }
 
 .button-icon-xl {
-    border: .3rem solid royalblue;
+    border: .3rem solid #38369A;
     padding: .8rem;
     background: #202020;
     border-radius: 50%;
@@ -95,6 +95,7 @@
 
 .timebar-elapsed,
 .timebar-remaining {
+    font-family: "Fira Code", "Fira Sans", sans-serif;
     flex-shrink: 0;
 }
 
@@ -308,9 +309,6 @@
 
     .player-layout:not(.collapsed) .player {
         height: calc(100% - 3em);
-        box-shadow: none;
-        border-top-left-radius: none;
-        border-top-right-radius: none;
     }
 
     .player-top {

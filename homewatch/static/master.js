@@ -86,4 +86,50 @@ document.querySelectorAll(".menu").forEach(menu => {
     });
 });
 
+function showModalShutdown() {
+    const template = document.getElementById("template-modal-shutdown");
+    const mainElement =  document.importNode(template.content, true);
+    mainElement.querySelector(".modal-button-close").addEventListener("click", closeModals);
+    mainElement.querySelector(".modal-overlay").addEventListener("click", closeModals);
+    mainElement.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", (event) => {
+            if (confirm(`Confirmer ${button.textContent.toLowerCase()} ?`)) {
+                fetch(button.getAttribute("href"));
+                closeModals();
+            } else {
+                event.preventDefault();
+            }
+        });
+    });
+    document.body.appendChild(mainElement);
+}
+
+function closeModals() {
+    document.querySelectorAll(".modal").forEach(remove);
+}
+
+const linkShutdown = document.getElementById("link-shutdown");
+if (linkShutdown != null) {
+    linkShutdown.addEventListener("click", showModalShutdown);
+}
+
+function showModalWaitingScreen() {
+    const template = document.getElementById("template-modal-waiting-screen");
+    const mainElement =  document.importNode(template.content, true);
+    mainElement.querySelector(".modal-button-close").addEventListener("click", closeModals);
+    mainElement.querySelector(".modal-overlay").addEventListener("click", closeModals);
+    mainElement.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", (event) => {
+            fetch(button.getAttribute("href"));
+            closeModals();
+        });
+    });
+    document.body.appendChild(mainElement);
+}
+
+const linkWaitingScreen = document.getElementById("link-waiting-screen");
+if (linkWaitingScreen != null) {
+    linkWaitingScreen.addEventListener("click", showModalWaitingScreen);
+}
+
 });
