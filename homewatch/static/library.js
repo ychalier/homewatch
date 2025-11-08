@@ -361,11 +361,13 @@ if (PLAYERMODE) {
     }
 }
 
-sortSelect.addEventListener("input", () => {
-    readSortKey();
-    updateSort();
-    registerUserLocation();
-});
+if (sortSelect != null) {
+    sortSelect.addEventListener("input", () => {
+        readSortKey();
+        updateSort();
+        registerUserLocation();
+    });
+}
 
 document.querySelectorAll(".library-filter").forEach(filterElement => {
     filterElement.addEventListener("click", () => {
@@ -417,8 +419,10 @@ if (urlParams.has("scroll")) {
     document.querySelector(".library").scrollTo(0, scrollY);
 }
 
-readSortKey();
-updateSort();
+if (sortSelect != null) {
+    readSortKey();
+    updateSort();
+}
 updateFilters();
 
 });

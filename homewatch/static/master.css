@@ -1,6 +1,27 @@
 @import url("https://cdn.jsdelivr.net/npm/@xz/fonts@1/serve/fira-sans.min.css");
-@import url("https://cdn.jsdelivr.net/npm/@xz/fonts@1/serve/fira-code.min.css");
 
+* {
+    box-sizing: border-box;
+    --background-primary: #101010;
+    --background-primary-hover: #202020;
+    --background-secondary: #283244;
+    --background-secondary-hover: #1e2633;
+    --background-tertiary: #222222;
+    --border-secondary: #0d0d0d;
+    --text-primary: #f0f0f0;
+    --text-secondary: #f0f0f0;
+    --accent: #38369a;
+    --accent-hover: #242363;
+    --accent-light: #f0f0f0;
+    --accent-dark: #0c0c23;
+    --background-disabled: #444;
+    --text-disabled: #888;
+    --background-menu: #1e1e1e;
+    --background-menu-hover: #303030;
+    --text-tenuous: #aaa;
+    --background-panel: #060606;
+    --border-panel: black;
+}
 
 /**
  * Theme
@@ -16,8 +37,8 @@ html {
 body {
     padding: 0;
     margin: 0;
-    background: #101010;
-    color: #f0f0f0;
+    background: var(--background-primary);
+    color: var(--text-primary);
     font-family: "Fira Sans", sans-serif;
     font-display: swap;
     width: 100vw;
@@ -33,7 +54,7 @@ p {
 }
 
 code {
-    background: #283244;
+    background: var(--background-secondary);
     font: inherit;
     padding: 0 .2rem;
     border-radius: .2rem;
@@ -42,9 +63,9 @@ code {
 button,
 select,
 .button {
-    background: #283244;
-    color: white;
-    border: 1px solid #0d0d0d;
+    background: var(--background-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-secondary);
     padding: .4rem;
     border-radius: .4rem;
     cursor: pointer;
@@ -55,16 +76,15 @@ select,
 
 button:hover,
 select:hover,
-.button:hover,
-.library-filter {
-    background: #1e2633;
+.button:hover {
+    background: var(--background-secondary-hover);
 }
 
 button.disabled,
 .button.disabled {
     pointer-events: none;
-    background: #444;
-    color: #888;
+    background: var(--background-disabled);
+    color: var(--text-disabled);
 }
 
 progress {
@@ -74,13 +94,13 @@ progress {
 }
 
 progress::-moz-progress-bar {
-    background: #38369A;
+    background: var(--accent);
 }
 
 input {
     font: inherit;
-    background-color: #3b3b3b;
-    color: #f0f0f0;
+    background-color: var(--background-tertiary);
+    color: var(--text-primary);
     border: none;
     border-radius: .2rem;
     padding: .2rem;
@@ -88,28 +108,28 @@ input {
 
 input:focus,
 input:active {
-    outline-color: #38369A;
+    outline-color: var(--accent);
     outline-style: solid;
 }
 
 input[type="range"] {
     border: none;
-    background-color: #3b3b3b;
-    accent-color: #38369A;
+    background-color: var(--background-tertiary);
+    accent-color: var(--accent);
 }
 
 input[type="range"]::-moz-range-progress {
-    background-color: #38369A;
+    background-color: var(--accent);
 }
 
 input[type="range"]::-moz-range-thumb {
-    background-color: #676774;
-    border: 2px solid #f0f0f0;
+    background-color: var(--accent);
+    border: 2px solid var(--accent-light);
     border-radius: 50%;
 }
 
 input[type="range"]::-moz-range-track {
-    background-color: #3b3b3b;
+    background-color: var(--background-tertiary);
     height: 1px;
 }
 
@@ -118,7 +138,6 @@ input[type="range"]::-moz-range-track {
  */
 
 .icon {
-    box-sizing: border-box;
     display: inline-block;
     font-size: inherit;
     font-style: normal;
@@ -312,9 +331,8 @@ input[type="range"]::-moz-range-track {
 
  .navbar {
     height: 3em;
-    background: linear-gradient(175deg, #38369A, #283244);
+    background: linear-gradient(175deg, var(--accent), var(--background-secondary));
     width: 100vw;
-    box-sizing: border-box;
     flex-shrink: 0;
     top: 0;
     z-index: 2;
@@ -323,7 +341,7 @@ input[type="range"]::-moz-range-track {
     justify-content: space-between;
     align-items: center;
     padding: 0 1rem;
-    border-bottom: 1px solid #181e28;
+    border-bottom: 1px solid var(--border-secondary);
 }
 
 .navbar-items {
@@ -370,10 +388,11 @@ input[type="range"]::-moz-range-track {
     position: absolute;
     right: 0;
     top: 130%;
-    background: #1e1e1e;
+    background: var(--background-menu);
     border-radius: .4rem;
     flex-direction: column;
     overflow: hidden;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
 .menu-item {
@@ -386,13 +405,13 @@ input[type="range"]::-moz-range-track {
 }
 
 .menu-item:hover {
-    background: #303030;
+    background: var(--background-menu-hover);
 }
 
 .menu hr {
     margin: 0;
     width: 100%;
-    border: 1px solid #3b3b3b;
+    border: 1px solid var(--background-tertiary);
 }
 
 .menu.active .menu-items {
@@ -405,7 +424,7 @@ input[type="range"]::-moz-range-track {
 
 .subtitle {
     font-size: x-small;
-    color: #aaa;
+    color: var(--text-tenuous);
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
@@ -442,7 +461,6 @@ input[type="range"]::-moz-range-track {
 
 .modal-container {
     display: block;
-    box-sizing: border-box;
     position: fixed;
     z-index: 2;
     left: 1.5rem;
@@ -451,9 +469,9 @@ input[type="range"]::-moz-range-track {
     height: auto;
     padding: 1rem;
     overflow: hidden;
-    background: #1e1e1e;
+    background: var(--background-menu);
     border-radius: .8rem;
-    box-shadow: 0 0 3px rgba(00, 0, 0, 0.5);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
     animation: scalein .3s ease;
 }
 

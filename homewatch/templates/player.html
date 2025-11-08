@@ -21,9 +21,11 @@
 {{ super() }}
 <div class="player hidden">
     <div class="player-top timebar">
-        <div class="timebar-elapsed">-:--</div>
         <input class="timebar-input" type="range" min="0" max="0" value="0" step="1" />
-        <div class="timebar-remaining">-:--</div>
+        <div class="timebar-times">
+            <div class="timebar-elapsed">-:--</div>
+            <div class="timebar-remaining">-:--</div>
+        </div>
     </div>
     <div class="player-bottom">
         <div class="player-left inline-media">

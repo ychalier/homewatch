@@ -9,7 +9,6 @@
 }
 
 .library-section {
-    box-sizing: border-box;
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
@@ -23,7 +22,7 @@
     margin-right: .4rem;
     margin-bottom: .4rem;
     border-radius: .4rem;
-    background: #101010;
+    background: var(--background-secondary);
     padding: .4rem .6rem;
     min-height: 2em;
     display: flex;
@@ -35,15 +34,17 @@
 }
 
 .library-element.subfolder.done {
-    background: #0c0c23;
-    color: #888;
-    outline: 1px solid black;
+    background: var(--accent-dark);
+    color: var(--text-tenuous);
+}
+
+.library-element.subfolder.done:hover {
+    background: var(--accent-hover);
 }
 
 .library-element.playlist {
     cursor: pointer;
-    background: #283244;
-    /*color: #101010;*/
+    background: var(--background-secondary);
 }
 
 .library-filters {
@@ -57,22 +58,31 @@
     border-radius: .4rem;
     padding: .4rem 0;
     user-select: none;
-    color: #787878;
+    color: var(--text-tenuous);
 }
 
 .library-sort,
 .library-filter {
     border-radius: .4rem;
     border: none;
-    background: #283244;
+    background: var(--background-secondary);
     padding: .4rem;
     margin: 0;
     cursor: pointer;
     user-select: none;
 }
 
+.library-element:hover,
+.library-filter:hover {
+    background: var(--background-secondary-hover);
+}
+
 .library-filter.active {
-    background: #38369A;
+    background: var(--accent);
+}
+
+.library-filter.active:hover {
+    background: var(--accent-hover);
 }
 
 .library-medias {
@@ -87,11 +97,11 @@
     left: 0;
     bottom: 0;
     width: 100%;
-    background: #3b3b3b;
+    background: var(--background-tertiary);
 }
 
 .library-progress::-moz-progress-bar {
-  background: #38369A;
+  background: var(--accent);
 }
 
 /**
@@ -106,10 +116,9 @@
 
 .media {
     position: relative;
-    box-sizing: border-box;
     border-radius: .4rem;
     overflow: hidden;
-    color: #f0f0f0;
+    color: var(--text-primary);
     user-select: none;
     cursor: pointer;
     aspect-ratio: 2/3;
@@ -131,7 +140,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(180deg, #10101000 0%, #10101000 30%, #101010ff 100%);
+    background: linear-gradient(180deg, transparent 0%, transparent 30%, var(--background-primary) 100%);
 }
 
 .media-info {
@@ -140,7 +149,6 @@
     bottom: 0;
     padding: 0 .4rem .4rem .4rem;
     width: 100%;
-    box-sizing: border-box;
 }
 
 .media-badges {

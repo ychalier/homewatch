@@ -8,13 +8,26 @@
 }
 
 .button-icon-xl {
-    border: .3rem solid #38369A;
+    border: .3rem solid var(--accent);
     padding: .8rem;
-    background: #202020;
+    background: var(--background-secondary);
     border-radius: 50%;
     line-height: 0;
     margin: 0 .2rem;
     font-size: 1.4em;
+}
+
+.button-icon-xl:has(.icon-play) {
+    background: var(--background-primary);
+}
+
+.button-icon-xl:hover {
+    background: var(--background-secondary-hover);
+}
+
+
+.button-icon-xl:has(.icon-play):hover {
+    background: var(--background-primary-hover);
 }
 
 .button-icon.off {
@@ -45,15 +58,15 @@
 }
 
 .player {
-    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 1rem;
     border-radius: .4rem;
-    background: #101010;
+    background: var(--background-panel);
     margin: 0 .4rem .4rem .4rem;
     box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.5);
+    border-top: 1px solid var(--border-panel);
 }
 
 .player-top {
@@ -90,19 +103,24 @@
 
 .timebar {
     display: flex;
-    align-items: center;
+    flex-direction: column;
 }
 
 .timebar-elapsed,
 .timebar-remaining {
-    font-family: "Fira Code", "Fira Sans", sans-serif;
     flex-shrink: 0;
+}
+
+.timebar-times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: .4rem;
 }
 
 .timebar-input {
     width: 100%;
     height: 3px;
-    margin: 0 .4rem;
+    margin: 0;
 }
 
 .timebar-input::-moz-range-track {
@@ -146,7 +164,7 @@
 .panel-button {
     border: none;
     background: none;
-    color: #787878;
+    color: var(--text-tenuous);
 }
 
 .panel-overlay {
@@ -169,11 +187,10 @@
     position: fixed;
     left: 0;
     bottom: 0;
-    background: #060606;
+    background: var(--background-panel);
     width: 100vw;
-    border-top: 2px solid black;
+    border-top: 2px solid var(--border-panel);
     padding: 1rem;
-    box-sizing: border-box;
     flex-direction: column;
 }
 
@@ -190,6 +207,10 @@
 .panel-title {
     margin: 1.2rem 0 .4rem 0;
     font-weight: bold;
+}
+
+.panel-title:first-child {
+    margin-top: 0;
 }
 
 .panel-title-icon {
@@ -231,7 +252,7 @@
 }
 
 .queue-media {
-    background: #101010;
+    background: var(--background-primary);
     padding: .4rem;
     border-radius: .4rem;
     margin-bottom: .4rem;
@@ -242,7 +263,7 @@
 }
 
 .queue-current {
-    background: #202020;
+    background: var(--background-primary-hover);
 }
 
 .queue-next {
@@ -256,14 +277,13 @@
 #panel-settings {
     max-height: 70vh;
     overflow: auto;
-    border-top: 1px solid #202020;
-    background-color: #060606;
+    border-top: 1px solid var(--border-panel);
+    background-color: var(--background-panel);
 }
 
 /**
  * Component: player-volume
  */
-
 #player-volume-wrapper {
     display: flex;
     width: 100%;
@@ -312,7 +332,7 @@
     }
 
     .player-top {
-        margin: 1rem 0;
+        margin: 1rem 0 .4rem 0;
     }
 
     .player-bottom {

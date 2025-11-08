@@ -49,9 +49,10 @@
             <img class="modal-background" />
             <button class="modal-button-close"><i class="icon icon-cross"></i></button>
             <div class="modal-body">
+                <b>Éteindre le serveur</b>
                 <div class="modal-buttons">
-                    <button href="{{ url('api', 'close') }}?hooks=0">Éteindre le serveur</button>
-                    <button href="{{ url('api', 'close') }}?hooks=1">Éteindre et exécuter les scripts</button>
+                    <button href="{{ url('api', 'close') }}?hooks=0">Arrêter</button>
+                    <button href="{{ url('api', 'close') }}?hooks=1">Arrêter et exécuter les scripts</button>
                 </div>
             </div>
         </div>
@@ -65,7 +66,7 @@
             <img class="modal-background" />
             <button class="modal-button-close"><i class="icon icon-cross"></i></button>
             <div class="modal-body">
-                <h4>Écran de veille</h4>
+                <b>Écran de veille</b>
                 <div class="modal-buttons">
                     <button href="{{ url('api', 'wait') }}?show=1">Afficher</button>
                     <button href="{{ url('api', 'wait') }}?show=0">Masquer</button>
