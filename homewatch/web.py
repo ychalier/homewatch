@@ -202,7 +202,7 @@ class WebPlayer:
     def setup(self):
         orig = set(self.driver.window_handles)
         for xpi_path in update_addons():
-            self.driver.install_addon(xpi_path)
+            self.driver.install_addon(xpi_path, temporary=True)
         close_extension_welcome_tabs(self.driver, original_handles=orig, timeout=10, close_all_new=False)
         self.driver.switch_to.window(self.driver.window_handles[0])
         self.driver.get("https://www.youtube.com/favicon.ico")
