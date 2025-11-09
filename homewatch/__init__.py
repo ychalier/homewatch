@@ -51,7 +51,7 @@ def main():
         case "scan":
             root = pathlib.Path(args.root)
             if args.clear:
-                Library.clear(root)
+                Library.clear_hidden_directories(root)
                 return
             library = Library.from_scan(root)
             if args.output_path is not None:

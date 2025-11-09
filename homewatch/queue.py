@@ -60,7 +60,7 @@ class Queue:
         return "[" + ", ".join(elements) + "]"
 
     def __getitem__(self, key: int | slice) -> Media | list[Media]:
-        self._ordered_elements()[key]
+        return self._ordered_elements()[key]
 
     def add(self, elements: list[Media], first_index: int | None = 0,
             clear_first: bool = True):
@@ -94,12 +94,12 @@ class Queue:
     def set_shuffle(self, shuffle: bool):
         logger.info("Setting shuffle to %s", shuffle)
         self.shuffle = shuffle
-        i = self.ordering[self.current]
+        i = None if self.current is None else self.ordering[self.current]
         if self.shuffle:
             random.shuffle(self.ordering)
         else:
             self.ordering.sort()
-        self.current = self.ordering.index(i)
+        self.current = None if i is None else self.ordering.index(i)
     
     def doloop(self):
         logger.info("Looping the queue")
@@ -112,21 +112,23 @@ class Queue:
     def next(self):
         if self.current == len(self.elements) - 1 and self.loop:
             self.doloop()
-        elif self.current < len(self.elements):
+        elif self.current is not None and self.current < len(self.elements):
             self.current += 1
         else:
             raise EndOfQueueException()
         logger.info("Loading next element in queue, current is %s", self.current)
 
     def prev(self):
-        if self.current > 0:
+        if self.current is not None and self.current > 0:
             self.current -= 1
         else:
             raise StartOfQueueException()
         logger.info("Loading previous element in queue, current is %s", self.current)
     
     @property
-    def current_media(self) -> Media:
+    def current_media(self) -> Media | None:
+        if self.current is None:
+            return None
         return self.elements[self.ordering[self.current]]
     
     def jump_to(self, index: int):

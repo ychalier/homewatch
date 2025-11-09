@@ -83,12 +83,7 @@ def extract_thumbnail(path: pathlib.Path, duration: float) -> pathlib.Path:
     )
     _, err = process.communicate()
     if process.returncode != 0:
-        logger.warning(
-            "\r",
-            f"An error occured while extracting thumbnail for '{path}':",
-            "    " + re.sub("\r?\n", "\n    ", err.decode().strip()),
-            sep="\n"
-        )
+        logger.warning(f"\r\nAn error occured while extracting thumbnail for '{path}':\n    " + re.sub("\r?\n", "\n    ", err.decode().strip()))
         if duration > 0:
             logger.debug("Retrying with first frame")
             return extract_thumbnail(path, 0)
@@ -99,7 +94,10 @@ def extract_thumbnail(path: pathlib.Path, duration: float) -> pathlib.Path:
 
 class AudioSource:
 
-    def __init__(self, index: int, language: str = None, title: str = None):
+    def __init__(self,
+            index: int,
+            language: str | None = None,
+            title: str | None = None):
         self.index = index
         self.language = language
         self.title = title
@@ -118,7 +116,10 @@ class AudioSource:
 
 class SubtitleSource:
 
-    def __init__(self, source_type: int, language: str = None, title: str = None):
+    def __init__(self,
+            source_type: int,
+            language: str | None = None,
+            title: str | None = None):
         self.type = source_type
         self.language = language
         self.title = title
@@ -136,11 +137,15 @@ class SubtitleSource:
             return SubtitleTrack(d["id"], d["lang"], d["title"])
         elif d["type"] == SUBTITLE_FILE:
             return SubtitleFile(d["basename"], d["lang"])
+        raise ValueError(f"Unknown subtitle type {d['type']}")
 
 
 class SubtitleTrack(SubtitleSource):
 
-    def __init__(self, index: int, language: str = None, title: str = None):
+    def __init__(self,
+            index: int,
+            language: str | None = None,
+            title: str | None = None):
         SubtitleSource.__init__(self, SUBTITLE_TRACK, language, title)
         self.index = index
 
@@ -152,7 +157,7 @@ class SubtitleTrack(SubtitleSource):
 
 class SubtitleFile(SubtitleSource):
 
-    def __init__(self, basename: str, language: str = None):
+    def __init__(self, basename: str, language: str | None = None):
         SubtitleSource.__init__(self, SUBTITLE_FILE, language)
         self.basename = basename
 
@@ -174,13 +179,20 @@ class Media(LibraryEntry):
     PATTERN_DIRECTOR = re.compile(r'\(([^\(]+)\) *$')
     PATTERN_EPISODE = re.compile(r'^((\d+)\. |S(\d+)E(\d+) (?:- )?)')
 
-    def __init__(self, folder: "LibraryFolder", basename: str, duration: float,
-                 video_codec: str = None, video_profile: int = None,
-                 video_level: str = None, audio_codec: str = None,
-                 audio_profile: str = None, resolution: int = None,
-                 framerate: int = None, thumbnail: str = None,
-                 audio_sources: list[AudioSource] = None,
-                 subtitle_sources: list[SubtitleSource] = None):
+    def __init__(self,
+            folder: "LibraryFolder",
+            basename: str,
+            duration: float,
+            video_codec: str | None = None,
+            video_profile: int | None = None,
+            video_level: str | None = None,
+            audio_codec: str | None = None,
+            audio_profile: str | None = None,
+            resolution: int | None = None,
+            framerate: int | None = None,
+            thumbnail: str | None = None,
+            audio_sources: list[AudioSource] = [],
+            subtitle_sources: list[SubtitleSource] = []):
         LibraryEntry.__init__(self, folder, basename)
         self.duration = duration
         self.video_codec = video_codec
@@ -191,9 +203,9 @@ class Media(LibraryEntry):
         self.resolution = resolution
         self.framerate = framerate
         self.thumbnail = thumbnail
-        self.audio_sources = audio_sources if audio_sources is not None else []
-        self.subtitle_sources = subtitle_sources if subtitle_sources is not None else []
-        self.name = None
+        self.audio_sources = audio_sources
+        self.subtitle_sources = subtitle_sources
+        self.name = "Unnamed"
         self.ext = None
         self.title = None
         self.counter = None
@@ -239,7 +251,10 @@ class Media(LibraryEntry):
     
     @property
     def folder_index(self) -> int:
-        return self.folder.index(self)
+        index = self.folder.index(self)
+        if index is None:
+            raise ValueError(f"Could not find folder index of media {self.path}")
+        return index
 
     @property
     def duration_display(self) -> str:
@@ -398,6 +413,8 @@ class Media(LibraryEntry):
     
     def to_fulldict(self) -> dict:
         base_dict = self.to_dict()
+        if self.thumbnail is None:
+            logger.warning("Media has no thumbnail: %s", self.path)
         base_dict.update(
             name=self.name,
             ext=self.ext,
@@ -407,17 +424,19 @@ class Media(LibraryEntry):
             director=self.director,
             year=self.year,
             mediapath=self.path.as_posix(),
-            thumbnail=pathlib.Path(self.thumbnail).as_posix(),
+            thumbnail=None if self.thumbnail is None else pathlib.Path(self.thumbnail).as_posix(),
         )
         return base_dict
 
     def to_mindict(self) -> dict:
+        if self.thumbnail is None:
+            logger.warning("Media has no thumbnail: %s", self.path)
         return {
             "basename": self.basename,
             "title": self.title,
             "subtitle": self.subtitle(),
             "folder": self.folder.path.as_posix(),
-            "thumbnail": pathlib.Path(self.thumbnail).as_posix(),
+            "thumbnail": None if self.thumbnail is None else pathlib.Path(self.thumbnail).as_posix(),
         }
 
     @classmethod
@@ -480,9 +499,11 @@ class Folder(LibraryEntry):
 
     NAME_PATTERN = re.compile(r'^([^\(]+)( \((.+)\))?$')
 
-    def __init__(self, folder: "LibraryFolder", basename: str):
+    def __init__(self,
+            folder: "LibraryFolder",
+            basename: str):
         LibraryEntry.__init__(self, folder, basename)
-        self.title: str = None
+        self.title: str = "Untitled"
         self.subtitle: list[str] = []
         self._extract_fields()
 
@@ -508,17 +529,19 @@ class Folder(LibraryEntry):
         return cls(folder, d["basename"])
     
     @classmethod
-    def from_path(cls, folder: "LibraryFolder", path: str):
+    def from_path(cls, folder: "LibraryFolder", path: str | pathlib.Path):
         logger.debug("Analyzing subfolder at %s", path)
         return cls(folder, os.path.basename(path))
 
 
 class Playlist(LibraryEntry):
 
-    def __init__(self, folder: "LibraryFolder", basename: str,
-                 elements: list[str] = None):
+    def __init__(self,
+            folder: "LibraryFolder",
+            basename: str,
+            elements: list[str] = []):
         LibraryEntry.__init__(self, folder, basename)
-        self.elements: list[str] = elements if elements is not None else []
+        self.elements: list[str] = elements
     
     @property
     def title(self) -> str:
@@ -539,7 +562,7 @@ class Playlist(LibraryEntry):
         return cls(folder, d["basename"], d["elements"])
 
     @classmethod
-    def from_path(cls, folder: "LibraryFolder", path: str):
+    def from_path(cls, folder: "LibraryFolder", path: str | pathlib.Path):
         logger.debug("Analyzing playlist at %s", path)
         with open(path, "r", encoding="utf8") as file:
             elements = []
@@ -554,20 +577,20 @@ class LibraryFolder:
     def __init__(
             self,
             path: pathlib.Path,
-            medias: list[Media] = None,
-            folders: list[Folder] = None,
-            playlists: list[Playlist] = None):
+            medias: list[Media] = [],
+            folders: list[Folder] = [],
+            playlists: list[Playlist] = []):
         self.path = path
-        self.medias = medias if medias is not None else []
+        self.medias = medias[:]
         self._media_index = { x.basename: x for x in self.medias }
-        self.subfolders = folders if folders is not None else []
+        self.subfolders = folders[:]
         self._subfolders_index = { x.basename: x for x in self.subfolders }
-        self.playlists = playlists if playlists is not None else []
+        self.playlists = playlists[:]
         self._playlists_index = { x.basename: x for x in self.playlists }
     
-    def index(self, media: Media) -> int:
-        """Return index of media in media list. Returns None if media does not
-        exist.
+    def index(self, media: Media) -> int | None:
+        """Return index of media in media list.
+        Returns None if media does not exist.
         """
         for i, target in enumerate(self.medias):
             if target.basename == media.basename:
@@ -586,21 +609,21 @@ class LibraryFolder:
         self.medias.append(media)
         self._media_index[media.basename] = media
     
-    def get_media(self, basename: str) -> Media:
+    def get_media(self, basename: str) -> Media | None:
         return self._media_index.get(basename)
     
     def add_subfolder(self, folder: Folder):
         self.subfolders.append(folder)
         self._subfolders_index[folder.basename] = folder
     
-    def get_subfolder(self, basename: str) -> Folder:
+    def get_subfolder(self, basename: str) -> Folder | None:
         return self._subfolders_index.get(basename)
 
     def add_playlist(self, playlist: Playlist):
         self.playlists.append(playlist)
         self._playlists_index[playlist.basename] = playlist
     
-    def get_playlist(self, basename: str) -> Playlist:
+    def get_playlist(self, basename: str) -> Playlist | None:
         return self._playlists_index.get(basename)
     
     def sort(self):
@@ -620,11 +643,13 @@ class LibraryFolder:
         }
 
     @classmethod
-    def from_scan(cls, root: pathlib.Path, path: pathlib.Path, quiet=True):
+    def from_scan(cls, root: str | pathlib.Path, path: pathlib.Path, quiet: bool = True):
         """
         @param document_root: library document root, 
         """
         folder = cls(path)
+        if isinstance(root, str):
+            root = pathlib.Path(root)
         fullpath = root / path
         if not fullpath.is_relative_to(root) or not fullpath.is_dir():
             logger.error("Could not scan library folder at %s", fullpath)
@@ -635,7 +660,7 @@ class LibraryFolder:
         except StopIteration:
             return folder
         pbar = tqdm.tqdm(total=len(dirs) + len(files), disable=quiet)
-        subtitle_paths: list[str] = []
+        subtitle_paths: list[pathlib.Path] = []
         medias_names: dict[str, Media] = {}
         for dirname in dirs:
             pbar.set_description(dirname)
@@ -689,7 +714,7 @@ class LibraryFolder:
         return folder
     
     @classmethod
-    def from_file(cls, path:str):
+    def from_file(cls, path: str):
         logger.info("Loading library folder at %s", path)
         with open(path, "r", encoding="utf8") as file:
             d = json.load(file)
@@ -762,18 +787,17 @@ class Hierarchy:
         raise ValueError(f"LIBRARY_MODE: {settings.LIBRARY_MODE}")
 
 
-def test_library_connection(max_retries=3):
+def test_library_connection(max_retries: int = 3):
     if settings.LIBRARY_MODE == "local":
         return
     for attempt in range(max_retries):
-        success = True
         try:
             response = requests.get(settings.LIBRARY_ROOT + "alive")
+            if response.status_code == 200:
+                logger.info("Successfully connected to remote library")
+                return
         except requests.exceptions.ConnectionError:
-            success = False
-        if success and response.status_code == 200:
-            logger.info("Successfully connected to remote library")
-            return
+            pass
         logger.error("Could not connect to remote library, retrying in 1s (attempt %d)", attempt + 1)
         print("Remote library unreachable, retrying in 1s")
         time.sleep(1)
@@ -784,7 +808,7 @@ def test_library_connection(max_retries=3):
 
 class Library(dict[str, LibraryFolder]):
 
-    def __init__(self, root: pathlib.Path, folders: list[LibraryFolder] = []):
+    def __init__(self, root: str | pathlib.Path, folders: list[LibraryFolder] = []):
         self.root = root
         for folder in folders:
             self[folder.path.as_posix()] = folder
@@ -846,7 +870,7 @@ class Library(dict[str, LibraryFolder]):
         raise ValueError(f"LIBRARY_MODE: {settings.LIBRARY_MODE}")
 
     @staticmethod
-    def clear(top: pathlib.Path):
+    def clear_hidden_directories(top: pathlib.Path):
         logger.info("Clearing library at %s", top)
         for path in list(top.glob("**")):
             if path.is_dir() and path.name == settings.HIDDEN_DIRECTORY:

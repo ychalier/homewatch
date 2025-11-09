@@ -28,14 +28,18 @@ class Theater(PlayerObserver):
 
     def load_current(self):
         media = self.queue.current_media
+        if media is None:
+            raise ValueError("Media is None")
         logger.info("Loading media at %s", media.path)
         self.player.load(media, play=True)
 
     def on_time_changed(self, new_time: int):
+        if self.queue.current_media is None:
+            return
         if new_time is not None and new_time >= 0 and not self.waiting_screen_visible:
             self.history.update(self.queue.current_media, new_time)
 
-    def on_media_state_changed(self, new_state: int):
+    def on_media_state_changed(self, new_state: int | None):
         if new_state == Player.STATE_ENDED and self.waiting_screen_visible:
             def callback():
                 time.sleep(.1)
@@ -71,6 +75,8 @@ class Theater(PlayerObserver):
                 clear_first=True)
         elif target == "next":
             media = self.library.get_media(pathlib.Path(path))
+            if media is None:
+                raise RuntimeError(f"Media not found: {path}")
             self.queue.append([media])
             return
         elif target == "folder":
@@ -78,11 +84,13 @@ class Theater(PlayerObserver):
             self.queue.add(library_folder.medias, None, True)
         elif target == "playlist":
             playlist = self.library.get_playlist(pathlib.Path(path))
+            if playlist is None:
+                raise RuntimeError(f"Playlist not found: {path}")
             medias = [
                 self.library.get_media(playlist.folder.path / item)
                 for item in playlist.elements
             ]
-            self.queue.add(medias, None)
+            self.queue.add([m for m in  medias if m is not None], None)
         self.load_current()
         if seek > 0:
             self.player.seek(seek)

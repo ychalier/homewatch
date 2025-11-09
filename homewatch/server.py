@@ -16,7 +16,7 @@ import werkzeug
 import werkzeug.middleware.shared_data
 import werkzeug.serving
 
-from .library import LibraryFolder, Hierarchy
+from .library import LibraryFolder, Hierarchy, Media
 from .theater import Theater
 from .player import Player, PlayerObserver
 from .web import WebPlayer
@@ -37,15 +37,26 @@ def urljoin(base: str, *parts: str) -> str:
     return urllib.parse.urljoin(base, url)
 
 
-def parse_qs(url: str) -> dict:
-    query = urllib.parse.parse_qs(urllib.parse.urlparse(url)[4])
-    for key in query:
-        n = len(query[key])
+def parse_qs(url: str) -> dict[str, None | str | list[str]]:
+    query: dict[str, None | str | list[str]] = {}
+    for key, value in urllib.parse.parse_qs(urllib.parse.urlparse(url)[4]).items():
+        n = len(value)
         if n == 0:
             query[key] = None
         elif n == 1:
-            query[key] = query[key][0]
+            query[key] = value[0]
+        else:
+            query[key] = value
     return query
+
+
+def query_get(query: dict[str, None | str | list[str]], key: str, default: str) -> str:
+    value = query.get(key)
+    if value is None:
+        return default
+    if isinstance(value, list):
+        return value[0]
+    return value
 
 
 class SleepWatcher(threading.Thread):
@@ -84,10 +95,10 @@ class WebsocketServer(threading.Thread, PlayerObserver):
     def on_time_changed(self, new_time: int):
         self._broadcast(f"TIME {new_time}")
 
-    def on_media_changed(self, media_path: str):
+    def on_media_changed(self, media_path: str | None):
         self._broadcast(f"MPTH {media_path}")
 
-    def on_media_state_changed(self, new_state: int):
+    def on_media_state_changed(self, new_state: int | None):
         self._broadcast(f"MSTT {new_state}")
         if new_state == Player.STATE_ENDED and self.close_on_end:
             self.close()
@@ -180,7 +191,9 @@ class WebsocketServer(threading.Thread, PlayerObserver):
             self.connections.remove(websocket)
         async def start_server():
             async with websockets.serve(register, self.host, None) as wserver:
-                self.port = wserver.sockets[0].getsockname()[1]
+                for socket in wserver.sockets:
+                    self.port = socket.getsockname()[1]
+                    break
                 logger.info("Starting websocket server at ws://%s:%d", self.host, self.port)
                 await asyncio.Future()
         asyncio.run(start_server())
@@ -205,10 +218,10 @@ class LibraryServer:
     def _get_landing_redirection_target(self) -> str:
         return "library"
 
-    def _get_library_folder(self, relpath: pathlib.Path) -> LibraryFolder:
+    def _get_library_folder(self, relpath: pathlib.Path) -> LibraryFolder | None:
         return LibraryFolder.from_settings(relpath.parent if relpath.name in {"index.html", "index.json"} else relpath)
 
-    def view_landing(self, request: werkzeug.Request):
+    def view_landing(self, request: werkzeug.Request) -> werkzeug.Response:
         return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
             "Location": urljoin(
             request.host_url + settings.HOME_URL,
@@ -220,15 +233,15 @@ class LibraryServer:
             "Location": urljoin( request.host_url + settings.HOME_URL, "library")
         })
 
-    def view_basic(self, template_name, **kwargs):
+    def view_basic(self, template_name, **kwargs) -> werkzeug.Response:
         template = self.jinja.get_template(template_name)
         text = template.render(**kwargs)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
-    def view_about(self, request: werkzeug.Request):
+    def view_about(self, request: werkzeug.Request) -> werkzeug.Response:
         return self.view_basic("about.html")
 
-    def view_library(self, request: werkzeug.Request):
+    def view_library(self, request: werkzeug.Request) -> werkzeug.Response | None:
         relpath = pathlib.Path(request.path[1:]).relative_to("library/")
         query = parse_qs(request.url)
         embedded = query.get("embedded") == "1"
@@ -243,7 +256,7 @@ class LibraryServer:
         self.jinja.globals.update(first_library_load=False)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
-    def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
+    def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response | None:
         # TODO: enhance path resolution?
         path = pathlib.Path(request.path[1:])
         if str(path) == ".":
@@ -355,34 +368,50 @@ class PlayerServer(LibraryServer):
 
     def view_api_load(self, request: werkzeug.Request) -> werkzeug.Response:
         query = parse_qs(request.url)
-        path = query.get("path", "")
-        target = query.get("target", "media")
-        queue_index = [x for x in query.get("queue", "").split(",") if x]
-        if queue_index:
-            queue_index = list(map(int, queue_index))
-        seek = int(query.get("seek", 0))
+        path = query_get(query, "path", "")
+        target = query_get(query, "target", "media")
+        queue_arg = query_get(query, "queue", "")
+        queue_index = [int(x) for x in queue_arg.split(",") if x]
+        seek = int(query_get(query, "seek", "0"))
         self.theater.load_and_play(path, seek, target, queue_index)
         if target == "next":
             self.wss._broadcast("QUEU")
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
+    
+    def _media_from_query_path(self, query: dict[str, None | str | list[str]]) -> Media | None:
+        path = query.get("path")
+        if path is None:
+            return None
+        if isinstance(path, list):
+            path = path[0]
+        return self.theater.library.get_media(pathlib.Path(path))
 
     def view_api_history(self, request: werkzeug.Request) -> werkzeug.Response:
         if request.method == "GET":
             query = parse_qs(request.url)
-            path = query["path"]
-            text = str(self.theater.history[path])
+            media = self._media_from_query_path(query)
+            if media is None:
+                return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
+            text = str(self.theater.history[media])
             return werkzeug.Response(text, status=200, mimetype="text/plain")
         elif request.method == "POST":
             query = parse_qs(request.url)
-            path = pathlib.Path(query["path"])
+            path = query["path"]
+            if path is None:
+                return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
+            if isinstance(path, list):
+                path = path[0]
             viewed = query["viewed"] == "1"
-            self.theater.set_viewed_path(path, viewed)
+            self.theater.set_viewed_path(pathlib.Path(path), viewed)
             return werkzeug.Response("OK", status=204, mimetype="text/plain")
         return werkzeug.Response("405 Method Not Allowed", status=405, mimetype="text/plain")
 
     def view_api_media(self, request: werkzeug.Request) -> werkzeug.Response:
-        path = parse_qs(request.url)["path"]
-        media_details = self.theater.library.get_media(pathlib.Path(path)).to_fulldict()
+        query = parse_qs(request.url)
+        media = self._media_from_query_path(query)
+        if media is None:
+            return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
+        media_details = media.to_fulldict()
         text = json.dumps(media_details)
         return werkzeug.Response(text, status=200, mimetype="application/json")
 
@@ -410,7 +439,7 @@ class PlayerServer(LibraryServer):
         return werkzeug.Response(text, status=200, mimetype="application/json")
 
     def view_api_close(self, request: werkzeug.Request) -> werkzeug.Response:
-        hooks = bool(int(parse_qs(request.url).get("hooks", 0)))
+        hooks = bool(int(query_get(parse_qs(request.url), "hooks", "0")))
         def callback():
             time.sleep(.1)
             self.close(hooks)
@@ -438,6 +467,8 @@ class PlayerServer(LibraryServer):
             return werkzeug.Response("403 Forbidden", status=403, mimetype="text/plain")
         query = parse_qs(request.url)
         action = query.get("action")
+        if isinstance(action, list):
+            action = action[0]
         if action is None:
             return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
         if action == "close":
