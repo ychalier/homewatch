@@ -95,7 +95,7 @@ HISTORY_PATH = "history"
 STATUS_PATH = "status.json"
 
 # Enable waiting screen at startup
-SHOW_WAITING_SCREEN_AT_STARTUP = False
+SHOW_WAITING_SCREEN_AT_STARTUP = True
 
 # Default settings
 DEFAULT_AUTOPLAY = True

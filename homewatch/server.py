@@ -4,6 +4,7 @@ import logging
 import os
 import pathlib
 import subprocess
+import sys
 import threading
 import time
 import urllib.parse
@@ -333,13 +334,14 @@ class PlayerServer(LibraryServer):
             return status
         return None
 
-    def close(self, hooks=True):
+    def close(self, hooks: bool = True, exit: bool = True):
         logger.info("Closing server")
         self.export_status()
         if hooks:
             for hook_path in settings.POST_HOOKS:
                 execute_hook(hook_path)
-        os._exit(0)
+        if exit:
+            os._exit(0)
 
     def _get_landing_redirection_target(self) -> str:
         return "player"
@@ -467,6 +469,15 @@ class PlayerServer(LibraryServer):
             self.close(hooks)
         threading.Thread(target=callback).start()
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
+    
+    def view_api_restart(self, request: werkzeug.Request) -> werkzeug.Response:
+        def callback():
+            time.sleep(.1)
+            self.close(False, False)
+            subprocess.Popen([sys.executable] + sys.argv)
+            sys.exit()
+        threading.Thread(target=callback).start()
+        return werkzeug.Response("OK", status=204, mimetype="text/plain")
 
     def view_api_read_status(self, request: werkzeug.Request) -> werkzeug.Response:
         status = self.read_status()
@@ -515,6 +526,8 @@ class PlayerServer(LibraryServer):
             return self.view_api_queue(request)
         elif path_posix == "api/close":
             return self.view_api_close(request)
+        elif path_posix == "api/restart":
+            return self.view_api_restart(request)
         elif path_posix == "api/status/read":
             return self.view_api_read_status(request)
         elif path_posix == "api/status/load":
