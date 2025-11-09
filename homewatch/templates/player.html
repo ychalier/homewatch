@@ -10,7 +10,6 @@
 <script src="{{ static('player.js') }}"></script>
 <script>
     const MEDIA_URL = "{{ media_url }}";
-    const WSS_URL = "{{ wss_url }}";
     const FIRST_LIBRARY_LOAD = {% if first_library_load %}true{% else %}false{% endif %};
 </script>
 {% endblock scripts %}

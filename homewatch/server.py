@@ -372,7 +372,6 @@ class PlayerServer(LibraryServer):
         text = template.render(
             library=library_folder,
             embedded=embedded,
-            wss_url=f"ws://{self.wss.host}:{self.wss.port}",
             subfolder_prefix="player")
         self.jinja.globals.update(first_library_load=False)
         return werkzeug.Response(text, status=200, mimetype="text/html")
@@ -388,9 +387,7 @@ class PlayerServer(LibraryServer):
                 self.web_player.bind_observer(self.wss)
             self.web_player.load(url)
         template = self.jinja.get_template("web.html")
-        text = template.render(
-            player=self.web_player,
-            wss_url=f"ws://{self.wss.host}:{self.wss.port}",)
+        text = template.render(player=self.web_player)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def view_api_load(self, request: werkzeug.Request) -> werkzeug.Response:
@@ -504,6 +501,9 @@ class PlayerServer(LibraryServer):
         else:
             self.theater.player.show_waiting_screen()
         return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
+    
+    def view_api_wss(self, request: werkzeug.Request) -> werkzeug.Response:
+        return werkzeug.Response(f"ws://{self.wss.host}:{self.wss.port}", status=200, mimetype="text/plain")
 
     def dispatch_request(self, request: werkzeug.Request) -> werkzeug.Response:
         response = super().dispatch_request(request)
@@ -537,6 +537,8 @@ class PlayerServer(LibraryServer):
             return self.view_api_export_status(request)
         elif path_posix == "api/wait":
             return self.view_api_wait(request)
+        elif path_posix == "api/wss":
+            return self.view_api_wss(request)
         return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
 
 

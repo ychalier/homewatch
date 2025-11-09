@@ -18,8 +18,11 @@ const STATE_ERROR = 7;
 var websocket;
 var websocketRetryCount = 0;
 
-function connectWebsocket() {
-    websocket = new WebSocket(WSS_URL);
+async function connectWebsocket() {
+    const wssUrl = await fetch(`${API_URL}/wss`).catch((error) => {
+        retryConnection({reason: error});
+    }).then(res => res.text());
+    websocket = new WebSocket(wssUrl);
     websocket.onopen = () => {
         websocketRetryCount = 0;
         console.log("Websocket is connected");
@@ -49,22 +52,26 @@ function connectWebsocket() {
         websocket.send("PONG");
     };
     websocket.onclose = (event) => {
-        websocketRetryCount++;
-        let delay = 1;
-        if (websocketRetryCount >= 10) {
-            delay = 30;
-        } else if (websocketRetryCount >= 3) {
-            delay = 5;
-        }
-        document.body.classList.add("wss-disconnected");
-        document.body.classList.remove("wss-connected");
-        console.log(`Socket is closed. Reconnect will be attempted in ${delay} second.`, event.reason);
-        setTimeout(() => { connectWebsocket(); }, delay * 1000);
+        retryConnection(event);
     };
     websocket.onerror = (err) => {
         console.error("Socket encountered error: ", err.message, "Closing socket");
         websocket.close();
     };
+}
+
+function retryConnection(event) {
+    websocketRetryCount++;
+    let delay = 1;
+    if (websocketRetryCount >= 10) {
+        delay = 30;
+    } else if (websocketRetryCount >= 3) {
+        delay = 5;
+    }
+    document.body.classList.add("wss-disconnected");
+    document.body.classList.remove("wss-connected");
+    console.log(`Socket is closed. Reconnect will be attempted in ${delay} second.`, event.reason);
+    setTimeout(() => { connectWebsocket(); }, delay * 1000);
 }
 
 connectWebsocket();
