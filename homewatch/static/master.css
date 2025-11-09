@@ -21,6 +21,8 @@
     --text-tenuous: #aaa;
     --background-panel: #060606;
     --border-panel: black;
+    --success: rgb(7, 133, 7);
+    --error: rgb(218, 66, 29);
 }
 
 /**
@@ -374,6 +376,27 @@ input[type="range"]::-moz-range-track {
 .navbar-item .icon,
 .navbar-menu .menu-icon .icon {
     margin-top: -4px;
+}
+
+.navbar-end {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.wss-status {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: grey;
+}
+
+body.wss-connected .wss-status {
+    background-color: var(--success);
+}
+
+body.wss-disconnected .wss-status {
+    background-color: var(--error);
 }
 
 /**

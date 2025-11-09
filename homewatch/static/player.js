@@ -23,6 +23,8 @@ function connectWebsocket() {
     websocket.onopen = () => {
         websocketRetryCount = 0;
         console.log("Websocket is connected");
+        document.body.classList.remove("wss-disconnected");
+        document.body.classList.add("wss-connected");
     }
     websocket.onmessage = (message) => {
         const key = message.data.slice(0, 4);
@@ -54,6 +56,8 @@ function connectWebsocket() {
         } else if (websocketRetryCount >= 3) {
             delay = 5;
         }
+        document.body.classList.add("wss-disconnected");
+        document.body.classList.remove("wss-connected");
         console.log(`Socket is closed. Reconnect will be attempted in ${delay} second.`, event.reason);
         setTimeout(() => { connectWebsocket(); }, delay * 1000);
     };

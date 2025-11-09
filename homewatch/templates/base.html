@@ -23,18 +23,23 @@
             <a class="navbar-item" href="{{ url('/') }}" id="location">Homewatch</a>
             {% endblock navbar_items %}
         </nav>
-        <div class="navbar-menu menu">
-            <span class="menu-icon"><i class="icon icon-vdots"></i></span>
-            <div class="menu-items">
-                {% block navbar_menu %}
-                <a class="menu-item" href="{{ url('about') }}">À propos</a>
-                {% if playermode %}
-                <hr>
-                <a class="menu-item" id="link-waiting-screen">Écran d'attente</a>
-                <a class="menu-item" href="{{ url('web') }}">Lecteur web</a>
-                <a class="menu-item" id="link-shutdown">Éteindre</a>
-                {% endif %}
-                {% endblock navbar_menu %}
+        <div class="navbar-end">
+            <div class="wss-status-wrapper">
+                <div class="wss-status"></div>
+            </div>
+            <div class="navbar-menu menu">
+                <span class="menu-icon"><i class="icon icon-vdots"></i></span>
+                <div class="menu-items">
+                    {% block navbar_menu %}
+                    <a class="menu-item" href="{{ url('about') }}">À propos</a>
+                    {% if playermode %}
+                    <hr>
+                    <a class="menu-item" id="link-waiting-screen">Écran d'attente</a>
+                    <a class="menu-item" href="{{ url('web') }}">Lecteur web</a>
+                    <a class="menu-item" id="link-shutdown">Éteindre</a>
+                    {% endif %}
+                    {% endblock navbar_menu %}
+                </div>
             </div>
         </div>
     </header>
