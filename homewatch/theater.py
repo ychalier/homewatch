@@ -194,3 +194,6 @@ class Theater(PlayerObserver):
     def hide_waiting_screen(self):
         self.player.hide_waiting_screen()
         self.waiting_screen_visible = False
+    
+    def close(self):
+        self.player.close()

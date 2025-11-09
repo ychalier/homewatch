@@ -334,13 +334,16 @@ class PlayerServer(LibraryServer):
             return status
         return None
 
-    def close(self, hooks: bool = True, exit: bool = True):
+    def close(self, hooks: bool = True, restart: bool = False):
         logger.info("Closing server")
         self.export_status()
+        self.theater.close()
         if hooks:
             for hook_path in settings.POST_HOOKS:
                 execute_hook(hook_path)
-        if exit:
+        if restart:
+            os._exit(42)
+        else:
             os._exit(0)
 
     def _get_landing_redirection_target(self) -> str:
@@ -473,9 +476,7 @@ class PlayerServer(LibraryServer):
     def view_api_restart(self, request: werkzeug.Request) -> werkzeug.Response:
         def callback():
             time.sleep(.1)
-            self.close(False, False)
-            subprocess.Popen([sys.executable] + sys.argv)
-            sys.exit()
+            self.close(False, True)
         threading.Thread(target=callback).start()
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
 
