@@ -54,6 +54,11 @@ class ChromecastGeneration(enum.Enum):
 
 CHROMECAST_GENERATION = None
 
+# Threshold for automatic detection of when a media or a folder is 'done',
+# ie. it has been completely seen.
+MARK_AS_VIEWED_THRESHOLD_SECONDS = 30
+MARK_AS_VIEWED_THRESHOLD_RATIO = 0.98
+
 # =============== #
 # Server settings #
 # =============== #

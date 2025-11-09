@@ -81,7 +81,7 @@
     <div class="library-section library-medias">
         {% for m in library.medias %}
             <div class="media-wrapper">
-                <div class="media"
+                <div class="media{% if m.done %} done{% endif %}"
                      type='{{ m.media_type_string }}'
                      {% if m.counter %}counter="{{ m.counter }}"{% endif %}
                      {% if m.season %}season="{{ m.season }}"{% endif %}
