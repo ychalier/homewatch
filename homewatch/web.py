@@ -1,10 +1,12 @@
+import json
 import logging
 import os
 import re
 import time
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 
+import bs4
 import requests
 from selenium.common.exceptions import TimeoutException, WebDriverException, StaleElementReferenceException
 from selenium.webdriver import Firefox
@@ -18,13 +20,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from .settings import GECKODRIVER_PATH, FIREFOX_PATH, ADDONS_DIR
 
-GITHUB_ADDONS = (
-    ("uBlock", "gorhill"),
-    ("SponsorBlock", "ajayyy"),
-)
 
-STATIC_ADDONS = (
-    ("OriginalYouTubeAudio@1.2", "https://addons.mozilla.org/firefox/downloads/file/4411918/original_youtube_audio-1.2.xpi"),
+ADDON_URL_TEMPLATE = "https://addons.mozilla.org/firefox/addon/{name}/"
+ADDONS = (
+    "ublock-origin",
+    "sponsorblock",
+    "youtube-no-translation",
+    "1-click-quality-for-twitch"
 )
 
 logger = logging.getLogger(__name__)
@@ -37,18 +39,21 @@ def parse_tag(version: str) -> tuple[int, ...]:
 def update_addons() -> list[Path]:
     ADDONS_DIR.mkdir(parents=True, exist_ok=True)
     paths = []
-    for name, owner in GITHUB_ADDONS:
-        response = requests.get(f"https://api.github.com/repos/{owner}/{name}/releases/latest")
+    for name in ADDONS:
+        response = requests.get(ADDON_URL_TEMPLATE.format(name=name))
         response.raise_for_status()
-        data = response.json()
-        online_tag = data["tag_name"]
-        url = None
-        for asset in data.get("assets", []):
-            if asset.get("name", "").endswith(".xpi"):
-                url = asset["browser_download_url"]
-                break
-        if url is None:
-            raise RuntimeError(f"Could not find a .xpi asset in the latest release of {owner}/{name}")
+        soup = bs4.BeautifulSoup(response.text, features="html.parser")
+        metadata_script = soup.find("script", {"type": "application/ld+json"})
+        if metadata_script is None:
+            raise RuntimeError(f"Could not find metadata tag for addon {name}")
+        metadata = json.loads(metadata_script.text)
+        online_tag = metadata["version"]
+        install_button = soup.find("a", {"class": "InstallButtonWrapper-download-link"})
+        if install_button is None:
+            raise RuntimeError(f"Could not find install button for addon {name}")
+        url = install_button["href"]
+        if isinstance(url, list):
+            url = url[0]
         path = None
         local_tag = None
         for cpath in ADDONS_DIR.glob("*.xpi"):
@@ -67,20 +72,10 @@ def update_addons() -> list[Path]:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         paths.append(path)
-    for name, url in STATIC_ADDONS:
-        path = ADDONS_DIR / f"{name}.xpi"
-        if not path.exists():
-            logger.debug(f"Fetching {name}")
-            r = requests.get(url, stream=True)
-            r.raise_for_status()
-            with path.open("wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        paths.append(path)
     return paths
 
 
-def close_extension_welcome_tabs(driver: Firefox, original_handles=None, timeout=20, close_all_new=False):
+def close_extension_welcome_tabs(driver: Firefox, tabs_to_close: int, timeout: float = 10):
     """
     Wait for new window handles to appear and close any that look like
     extension welcome pages.
@@ -91,69 +86,42 @@ def close_extension_welcome_tabs(driver: Firefox, original_handles=None, timeout
     - close_all_new: if True, close ALL new handles (dangerous if you expect other windows)
     Returns: list of tuples (handle, url, title) that were closed
     """
-    if original_handles is None:
-        original_handles = set(driver.window_handles)
-    else:
-        original_handles = set(original_handles)
+    original_handles = list(driver.window_handles)[:1]
     end = time.time() + timeout
-    closed = []
-    while time.time() < end:
-        current_handles = set(driver.window_handles)
-        new_handles = list(current_handles - original_handles)
-        if new_handles:
-            for h in new_handles:
-                try:
-                    driver.switch_to.window(h)
-                except WebDriverException:
-                    continue
-                try:
-                    WebDriverWait(driver, 5).until(
-                        lambda d: d.execute_script("return document.readyState") == "complete"
-                    )
-                except Exception:
-                    pass
-                url = ""
-                title = ""
-                try:
-                    url = driver.current_url or ""
-                except Exception:
-                    url = ""
-                try:
-                    title = driver.title or ""
-                except Exception:
-                    title = ""
-                probe = (url + " " + title).lower()
-                is_welcome = (
-                    "moz-extension://" in probe
-                    or "sponsor" in probe
-                    or "welcome" in probe
-                    or "thank" in probe
-                    or "get started" in probe
-                    or "about:addons" in probe
-                )
-                if close_all_new or is_welcome:
-                    try:
-                        driver.close()
-                        closed.append((h, url, title))
-                    except WebDriverException:
-                        pass
-            break
+    count = 0
+    while time.time() < end and count < tabs_to_close:
+        for handle in set(driver.window_handles):
+            if handle in original_handles:
+                continue
+            try:
+                driver.switch_to.window(handle)
+            except WebDriverException as err:
+                print(err)
+                continue
+            try:
+                WebDriverWait(driver, 5).until(lambda d: d.execute_script("return document.readyState") == "complete")
+            except Exception as err:
+                print(err)
+            try:
+                driver.close()
+                count += 1
+            except WebDriverException as err:
+                print(err)
         time.sleep(0.15)
-    remaining = driver.window_handles
-    if not remaining:
-        return closed
     target = None
-    for h in remaining:
-        if h in original_handles:
-            target = h
+    for handle in set(driver.window_handles):
+        if handle in original_handles:
+            target = handle
             break
     if target is None:
-        target = remaining[0]
+        for handle in set(driver.window_handles):
+            target = handle
+            break
     try:
-        driver.switch_to.window(target)
+        if target is not None:
+            driver.switch_to.window(target)
     except WebDriverException:
         pass
-    return closed
 
 
 def extract_youtube_id(url: str) -> str | None:
@@ -189,11 +157,15 @@ class WebPlayer:
     @see https://www.maketecheasier.com/cheatsheet/twitch-keyboard-shortcuts/
     """
 
-    def __init__(self):
+    def __init__(self, server_hostname: str, server_port: int):
+        self.server_hostname = server_hostname
+        self.server_port = server_port
         self.observers: set[WebPlayerObserver] = set()
         self.element: WebElement | None = None
         options = Options()
         options.binary_location = FIREFOX_PATH.as_posix()
+        options.set_preference("dom.webdriver.enabled", False)
+        options.set_preference("useAutomationExtension", False)
         options.set_preference("media.autoplay.default", 0)
         options.set_preference("media.autoplay.blocking_policy", 0)
         service = Service(GECKODRIVER_PATH.as_posix())
@@ -210,10 +182,9 @@ class WebPlayer:
         return self.driver.title
 
     def setup(self):
-        orig = set(self.driver.window_handles)
         for xpi_path in update_addons():
             self.driver.install_addon(xpi_path, temporary=True)
-        close_extension_welcome_tabs(self.driver, original_handles=orig, timeout=10, close_all_new=False)
+        close_extension_welcome_tabs(self.driver, 2)
         self.driver.switch_to.window(self.driver.window_handles[0])
         self.driver.get("https://www.youtube.com/favicon.ico")
         self.driver.add_cookie({
@@ -227,22 +198,25 @@ class WebPlayer:
         logger.info("Loading %s", url)
         yt_video_id = extract_youtube_id(url)
         if yt_video_id is not None:
-            url = f"https://www.youtube.com/embed/{yt_video_id}"
-        self.driver.get(url)
+            url = f"https://www.youtube.com/embed/{yt_video_id}?autoplay=1"
+            self.driver.get(f"http://{self.server_hostname}:{self.server_port}/youtube?" + urlencode({"url": url}))
+        else:
+            self.driver.get(url)
         try:
             WebDriverWait(self.driver, 5).until(lambda d: d.execute_script("return document.readyState") == "complete")
         except TimeoutException:
             pass
         domain = urlparse(self.url).netloc
-        if "youtu" in domain:
+        if "youtu" in domain or self.server_hostname in domain:
             self.state = "youtube"
+            iframe = self.driver.find_element(By.TAG_NAME, "iframe")
+            self.driver.switch_to.frame(iframe)
+            self.element = self.driver.find_element(By.TAG_NAME, "body")
         elif "twitch" in domain:
             self.state = "twitch"
+            self.element = self.driver.find_element(By.TAG_NAME, "body")
         else:
             raise NotImplementedError(f"Domain not supported {domain}")
-        self.element = self.driver.find_element(By.TAG_NAME, "body")
-        if self.state == "youtube":
-            self.click_at_center()
         for observer in self.observers:
             observer.on_page_loaded(self.url, self.title, self.state)
 
@@ -319,6 +293,22 @@ class WebPlayer:
                 self.element.send_keys("9")
             elif action == "captions":
                 self.element.send_keys("c")
+            elif action == "quality-480":
+                for button in self.driver.find_elements(By.CSS_SELECTOR, "button.quality-button"):
+                    if "480" in button.text:
+                        button.click()
+            elif action == "quality-720":
+                for button in self.driver.find_elements(By.CSS_SELECTOR, "button.quality-button"):
+                    if "720" in button.text:
+                        button.click()
+            elif action == "quality-1080":
+                for button in self.driver.find_elements(By.CSS_SELECTOR, "button.quality-button"):
+                    if "1080" in button.text:
+                        button.click()
+            elif action == "quality-auto":
+                for button in self.driver.find_elements(By.CSS_SELECTOR, "button.quality-button"):
+                    if "Auto" in button.text:
+                        button.click()
             elif action == "refresh":
                 self.driver.refresh()
                 try:

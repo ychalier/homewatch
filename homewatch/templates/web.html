@@ -12,7 +12,7 @@
 {{ super() }}
 <script src="{{ static('web.js') }}"></script>
 <script>
-    const API_URL = "{{ url('api', 'web') }}";
+    const API_URL = "{{ url('api') }}";
 </script>
 {% endblock scripts %}
 
@@ -56,6 +56,12 @@
             <button class="button-action" action="seek-7">7</button>
             <button class="button-action" action="seek-8">8</button>
             <button class="button-action" action="seek-9">9</button>
+        </div>
+        <div class="webplayer-middle webplayer-twitch">
+            <button class="button-action" action="quality-480">480p</button>
+            <button class="button-action" action="quality-720">720p</button>
+            <button class="button-action" action="quality-1080">1080p</button>
+            <button class="button-action" action="quality-auto">Auto</button>
         </div>
         <div class="webplayer-end">
             <button class="button-action" action="fullscreen">Fullscreen</button>

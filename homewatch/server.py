@@ -308,10 +308,12 @@ class LibraryServer:
 
 class PlayerServer(LibraryServer):
 
-    def __init__(self, address: str):
+    def __init__(self, hostname: str, port: int):
         LibraryServer.__init__(self)
         self.theater = Theater()
-        self.wss = WebsocketServer(self, address)
+        self.wss = WebsocketServer(self, hostname)
+        self.hostname = hostname
+        self.port = port
         self.wss.start()
         self.web_player: WebPlayer | None = None
         for hook_path in settings.PRE_HOOKS:
@@ -383,11 +385,18 @@ class PlayerServer(LibraryServer):
                 return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
             self.theater.hide_waiting_screen()
             if self.web_player is None:
-                self.web_player = WebPlayer()
+                self.web_player = WebPlayer(self.hostname, self.port)
                 self.web_player.bind_observer(self.wss)
             self.web_player.load(url)
         template = self.jinja.get_template("web.html")
         text = template.render(player=self.web_player)
+        return werkzeug.Response(text, status=200, mimetype="text/html")
+
+    def view_youtube_embed(self, request: werkzeug.Request) -> werkzeug.Response:
+        query = parse_qs(request.url)
+        template = self.jinja.get_template("youtube.html")
+        url = query_get(query, "url", "")
+        text = template.render(url=url)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def view_api_load(self, request: werkzeug.Request) -> werkzeug.Response:
@@ -515,6 +524,8 @@ class PlayerServer(LibraryServer):
             return self.view_player(request)
         elif path_posix == "web":
             return self.view_web(request)
+        elif path_posix == "youtube":
+            return self.view_youtube_embed(request)
         elif path_posix == "api/load":
             return self.view_api_load(request)
         elif path_posix == "api/media":
@@ -542,11 +553,11 @@ class PlayerServer(LibraryServer):
         return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
 
 
-def create_app(hostname: str = "127.0.0.1", with_static: bool = True):
+def create_app(hostname: str = "127.0.0.1", port: int = 8000, with_static: bool = True):
     if settings.SERVER_MODE == "library":
         app = LibraryServer()
     else:
-        app = PlayerServer(hostname)
+        app = PlayerServer(hostname, port)
     logger.info("Created WSGI app %s", app.__class__.__name__)
     if with_static:
         app.wsgi_app = werkzeug.middleware.shared_data.SharedDataMiddleware(
@@ -568,7 +579,7 @@ def execute_hook(path: str):
 
 def runserver(hostname: str = "127.0.0.1", port: int = 8000,
               debug: bool = False, show_qrcode: bool = False):
-    app = create_app(hostname)
+    app = create_app(hostname, port)
     logger.info("Starting Werkzeug development server at %s:%d", hostname, port)
     if show_qrcode:
         qr = qrcode.QRCode()
@@ -579,4 +590,5 @@ def runserver(hostname: str = "127.0.0.1", port: int = 8000,
         hostname, port,
         app,
         use_debugger=debug,
-        use_reloader=debug)
+        use_reloader=debug,
+        threaded=True)

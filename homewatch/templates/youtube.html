@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>YouTube Embed</title>
+    <style>
+html, body { margin: 0; overflow: hidden; }
+iframe { border: none; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <iframe id="iframe" src="{{ url }}" allowfullscreen allow="autoplay"></iframe>
+    <script>
+const updateTitle = () => {try {document.title = iframe.contentDocument.title} catch (e) {} };
+iframe.addEventListener("load", () => {
+    updateTitle();
+    const iframeDoc = iframe.contentDocument;
+    const titleElement = iframeDoc.querySelector("title");
+    if (titleElement) {
+        const observer = new MutationObserver(() => updateTitle());
+        observer.observe(titleElement, { childList: true });
+    }
+});
+  </script>
+</body>
+</html>

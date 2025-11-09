@@ -8,6 +8,7 @@
 
 #playerTitle {
     font-weight: bold;
+    text-align: center;
 }
 
 #playerState {
@@ -35,11 +36,16 @@ form.disabled button {
     pointer-events: none;
 }
 
-.webplayer-youtube {
+.webplayer-youtube,
+.webplayer-twitch {
     display: none;
     gap: .2rem;
 }
 
 #webpanel[state=youtube] .webplayer-youtube {
+    display: flex;
+}
+
+#webpanel[state=twitch] .webplayer-twitch {
     display: flex;
 }
