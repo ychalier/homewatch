@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import time
@@ -25,6 +26,8 @@ GITHUB_ADDONS = (
 STATIC_ADDONS = (
     ("OriginalYouTubeAudio@1.2", "https://addons.mozilla.org/firefox/downloads/file/4411918/original_youtube_audio-1.2.xpi"),
 )
+
+logger = logging.getLogger(__name__)
 
 
 def parse_tag(version: str) -> tuple[int, ...]:
@@ -54,7 +57,7 @@ def update_addons() -> list[Path]:
                 path = cpath
                 local_tag = ctag
         if local_tag is None or parse_tag(local_tag) < parse_tag(online_tag):
-            print(f"Fetching {name}@{online_tag}")
+            logger.debug(f"Fetching {name}@{online_tag}")
             r = requests.get(url, stream=True)
             r.raise_for_status()
             if path is not None:
@@ -67,7 +70,7 @@ def update_addons() -> list[Path]:
     for name, url in STATIC_ADDONS:
         path = ADDONS_DIR / f"{name}.xpi"
         if not path.exists():
-            print(f"Fetching {name}")
+            logger.debug(f"Fetching {name}")
             r = requests.get(url, stream=True)
             r.raise_for_status()
             with path.open("wb") as f:
@@ -171,6 +174,15 @@ def extract_youtube_id(url: str) -> str | None:
     return None
 
 
+class WebPlayerObserver:
+    
+    def on_page_loaded(self, url: str, title: str, state: str):
+        pass
+    
+    def on_webplayer_closed(self):
+        pass
+
+
 class WebPlayer:
     """
     @see https://support.google.com/youtube/answer/7631406?hl=en
@@ -178,6 +190,7 @@ class WebPlayer:
     """
 
     def __init__(self):
+        self.observers: set[WebPlayerObserver] = set()
         self.element: WebElement | None = None
         options = Options()
         options.binary_location = FIREFOX_PATH.as_posix()
@@ -185,6 +198,7 @@ class WebPlayer:
         options.set_preference("media.autoplay.blocking_policy", 0)
         service = Service(GECKODRIVER_PATH.as_posix())
         self.driver = Firefox(options, service)
+        self.state: str = "off"
         self.setup()
 
     @property
@@ -194,10 +208,6 @@ class WebPlayer:
     @property
     def title(self) -> str:
         return self.driver.title
-
-    @property
-    def domain(self) -> str:
-        return urlparse(self.url).netloc
 
     def setup(self):
         orig = set(self.driver.window_handles)
@@ -214,6 +224,7 @@ class WebPlayer:
         self.driver.get("about:blank")
 
     def load(self, url):
+        logger.info("Loading %s", url)
         yt_video_id = extract_youtube_id(url)
         if yt_video_id is not None:
             url = f"https://www.youtube.com/embed/{yt_video_id}"
@@ -222,16 +233,29 @@ class WebPlayer:
             WebDriverWait(self.driver, 5).until(lambda d: d.execute_script("return document.readyState") == "complete")
         except TimeoutException:
             pass
+        domain = urlparse(self.url).netloc
+        if "youtu" in domain:
+            self.state = "youtube"
+        elif "twitch" in domain:
+            self.state = "twitch"
+        else:
+            raise NotImplementedError(f"Domain not supported {domain}")
         self.element = self.driver.find_element(By.TAG_NAME, "body")
-        if yt_video_id is not None:
-            size = self.driver.get_window_size()
-            width = size["width"]
-            height = size["height"]
-            ActionChains(self.driver).move_by_offset(width/2, height/2).click().perform()
-            ActionChains(self.driver).move_by_offset(-width/2, -height/2).perform()
-    
+        if self.state == "youtube":
+            self.click_at_center()
+        for observer in self.observers:
+            observer.on_page_loaded(self.url, self.title, self.state)
+
+    def click_at_center(self):
+        size = self.driver.get_window_size()
+        width = size["width"]
+        height = size["height"]
+        ActionChains(self.driver).move_by_offset(width/2, height/2).click().perform()
+        ActionChains(self.driver).move_by_offset(-width/2, -height/2).perform()
+
     def execute_action(self, action: str, retry: bool = True):
         assert self.element is not None
+        logger.debug("Executing action %s", action)
         try:
             if action == "play":
                 self.element.send_keys("k")
@@ -256,7 +280,7 @@ class WebPlayer:
             elif action == "fastforward":
                 self.element.send_keys(Keys.ARROW_RIGHT)
             elif action == "volume-up":
-                if "twitch" in self.domain:
+                if self.state == "twitch":
                     ActionChains(self.driver)\
                         .key_down(Keys.SHIFT)\
                         .send_keys_to_element(self.element, Keys.ARROW_UP)\
@@ -265,7 +289,7 @@ class WebPlayer:
                 else:
                     self.element.send_keys(Keys.ARROW_UP)
             elif action == "volume-down":
-                if "twitch" in self.domain:
+                if self.state == "twitch":
                     ActionChains(self.driver)\
                         .key_down(Keys.SHIFT)\
                         .send_keys_to_element(self.element, Keys.ARROW_DOWN)\
@@ -308,4 +332,11 @@ class WebPlayer:
                 self.execute_action(action, retry=False)
 
     def close(self):
+        logger.info("Closing web player")
         self.driver.quit()
+        for observer in self.observers:
+            observer.on_webplayer_closed()
+    
+    def bind_observer(self, observer: WebPlayerObserver):
+        logger.info("Binding observer %s", observer)
+        self.observers.add(observer)

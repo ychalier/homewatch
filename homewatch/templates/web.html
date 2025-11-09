@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Lecteur Web ∣ {{ super() }}{% endblock %}
+{% block title %}Lecteur web ∣ {{ super() }}{% endblock %}
 
 {% block styles %}
 {{ super() }}
 <link rel="stylesheet" href="{{ static('player.css') }}" />
+<link rel="stylesheet" href="{{ static('web.css') }}" />
 {% endblock styles %}
 
 {% block scripts %}
@@ -12,57 +13,57 @@
 <script src="{{ static('web.js') }}"></script>
 <script>
     const API_URL = "{{ url('api', 'web') }}";
+    const WSS_URL = "{{ wss_url }}";
 </script>
 {% endblock scripts %}
+
+{% block navbar_items %}
+<a class="navbar-item" href="/"><i class="icon icon-arrow-left"></i></a>
+<span class="navbar-item">Lecteur web</span>
+{% endblock navbar_items %}
 
 {% block content %}
 
 <div class="container">
-
-    <form method="post" action="">
+    <form id="formLoadUrl" method="post" action="">
         <p>
             <input type="url" name="url" placeholder="https://youtu.be/" />
             <button>Charger</button><br>
             <span class="subtitle">Coller ici une URL YouTube ou Twitch.</span>
         </p>
     </form>
-
-    <p>{% if player %}{{ player.title }}{% else %}Lecteur éteint{% endif %}</p>
-
-    <p>
-        <button class="button-action" action="prev" class="button-icon"><i class="icon icon-prev"></i></button>
-        <button class="button-action" action="rewind" class="button-icon"><i class="icon icon-rewind"></i></button>
-        <button class="button-action" action="play" class="button-icon button-icon-xl"><i class="icon icon-play"></i></button>
-        <button class="button-action" action="fastforward" class="button-icon"><i class="icon icon-fastforward"></i></button>
-        <button class="button-action" action="next" class="button-icon"><i class="icon icon-next"></i></button>
-    </p>
-
-    <p>
-        <button class="button-action" action="mute" class="button-icon"><i class="icon icon-volume-off"></i></button>
-        <button class="button-action" action="volume-down" class="button-icon"><i class="icon icon-volume-min"></i></button>
-        <button class="button-action" action="volume-up" class="button-icon"><i class="icon icon-volume-max"></i></button>
-        <button class="button-action" action="fullscreen"><i class="icon icon-expand"></i></button>
-        <button class="button-action" action="captions"><i class="icon icon-language"></i></button>
-        <button class="button-action" action="close"><i class="icon icon-media-stop"></i></button>
-    </p>
-
-    <p>
-        <button class="button-action" action="home">0</button>
-        <button class="button-action" action="seek-1">1</button>
-        <button class="button-action" action="seek-2">2</button>
-        <button class="button-action" action="seek-3">3</button>
-        <button class="button-action" action="seek-4">4</button>
-        <button class="button-action" action="seek-5">5</button>
-        <button class="button-action" action="seek-6">6</button>
-        <button class="button-action" action="seek-7">7</button>
-        <button class="button-action" action="seek-8">8</button>
-        <button class="button-action" action="seek-9">9</button>
-    </p>
-
-    <p>
-        <button class="button-action" action="refresh">Refresh</button>
-    </p>
-
+    <div id="webpanel" class="panel {% if player and player.state != 'off' %} active{% endif %}" state="{{ player.state }}">
+        <div class="webplayer-top">
+            <span id="playerTitle">{{ player.title }}</span>
+            <a id="playerState" class="panel-subtitle" href="{{ player.url }}">{{ player.state | title }}</a>
+        </div>
+        <div class="webplayer-middle">
+            <button class="button-action button-icon" action="volume-down"><i class="icon icon-volume-min"></i></button>
+            <button class="button-action button-icon" action="prev"><i class="icon icon-prev"></i></button>
+            <button class="button-action button-icon" action="rewind"><i class="icon icon-rewind"></i></button>
+            <button class="button-action button-icon button-icon-xl" action="play"><i class="icon icon-play"></i></button>
+            <button class="button-action button-icon" action="fastforward"><i class="icon icon-fastforward"></i></button>
+            <button class="button-action button-icon" action="next"><i class="icon icon-next"></i></button>
+            <button class="button-action button-icon" action="volume-up"><i class="icon icon-volume-max"></i></button>
+        </div>
+        <div class="webplayer-middle webplayer-youtube">
+            <button class="button-action" action="home">0</button>
+            <button class="button-action" action="seek-1">1</button>
+            <button class="button-action" action="seek-2">2</button>
+            <button class="button-action" action="seek-3">3</button>
+            <button class="button-action" action="seek-4">4</button>
+            <button class="button-action" action="seek-5">5</button>
+            <button class="button-action" action="seek-6">6</button>
+            <button class="button-action" action="seek-7">7</button>
+            <button class="button-action" action="seek-8">8</button>
+            <button class="button-action" action="seek-9">9</button>
+        </div>
+        <div class="webplayer-end">
+            <button class="button-action" action="fullscreen">Fullscreen</button>
+            <button class="button-action" action="refresh">Refresh</button>
+            <button class="button-action" action="close">Close</button>
+        </div>
+    </div>
 </div>
 
 {% endblock content %}

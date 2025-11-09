@@ -112,6 +112,11 @@ input:active {
     outline-style: solid;
 }
 
+input[type=text],
+input[type=url] {
+    padding: .4rem;
+}
+
 input[type="range"] {
     border: none;
     background-color: var(--background-tertiary);

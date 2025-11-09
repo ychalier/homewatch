@@ -19,7 +19,7 @@ import werkzeug.serving
 from .library import LibraryFolder, Hierarchy, Media
 from .theater import Theater
 from .player import Player, PlayerObserver
-from .web import WebPlayer
+from .web import WebPlayer, WebPlayerObserver
 from . import settings
 
 
@@ -75,11 +75,12 @@ class SleepWatcher(threading.Thread):
             time.sleep(self.PERIOD_SECONDS)
 
 
-class WebsocketServer(threading.Thread, PlayerObserver):
+class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
 
     def __init__(self, server: "PlayerServer", hostname: str):
         threading.Thread.__init__(self, daemon=True)
         PlayerObserver.__init__(self)
+        WebPlayerObserver.__init__(self)
         self.server = server
         self.host = hostname
         self.port = None
@@ -168,6 +169,24 @@ class WebsocketServer(threading.Thread, PlayerObserver):
                 self.theater.jump_to(int(args[0]))
             case "MEDI":
                 self._broadcast(f"MPTH {self.player.media_path}")
+            case "WEB":
+                self._on_client_message_web(websocket, args[0], args[1:])
+        
+    def _on_client_message_web(self, websocket, action: str, args: list[str]):
+        if self.server.web_player is None:
+            return
+        if action == "close":
+            self.server.web_player.close()
+            self.server.web_player = None
+        else:
+            self.server.web_player.execute_action(action)
+    
+    def on_page_loaded(self, url: str, title: str, state: str):
+        body = json.dumps({"url": url, "title": title, "state": state})
+        self._broadcast(f"WEBLOAD {body}")
+    
+    def on_webplayer_closed(self):
+        self._broadcast(f"WEBCLOS")
 
     def run(self):
         async def register(websocket):
@@ -361,9 +380,12 @@ class PlayerServer(LibraryServer):
             self.theater.hide_waiting_screen()
             if self.web_player is None:
                 self.web_player = WebPlayer()
+                self.web_player.bind_observer(self.wss)
             self.web_player.load(url)
         template = self.jinja.get_template("web.html")
-        text = template.render(player=self.web_player)
+        text = template.render(
+            player=self.web_player,
+            wss_url=f"ws://{self.wss.host}:{self.wss.port}",)
         return werkzeug.Response(text, status=200, mimetype="text/html")
 
     def view_api_load(self, request: werkzeug.Request) -> werkzeug.Response:
@@ -462,22 +484,6 @@ class PlayerServer(LibraryServer):
         text = json.dumps(data)
         return werkzeug.Response(text, status=200, mimetype="application/json")
 
-    def view_api_web(self, request: werkzeug.Request) -> werkzeug.Response:
-        if self.web_player is None:
-            return werkzeug.Response("403 Forbidden", status=403, mimetype="text/plain")
-        query = parse_qs(request.url)
-        action = query.get("action")
-        if isinstance(action, list):
-            action = action[0]
-        if action is None:
-            return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
-        if action == "close":
-            self.web_player.close()
-            self.web_player = None
-        else:        
-            self.web_player.execute_action(action)
-        return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
-
     def view_api_wait(self, request: werkzeug.Request) -> werkzeug.Response:
         query = parse_qs(request.url)
         show = query.get("show", "0")
@@ -515,8 +521,6 @@ class PlayerServer(LibraryServer):
             return self.view_api_load_status(request)
         elif path_posix == "api/status/export":
             return self.view_api_export_status(request)
-        elif path_posix == "api/web":
-            return self.view_api_web(request)
         elif path_posix == "api/wait":
             return self.view_api_wait(request)
         return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")

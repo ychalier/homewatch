@@ -1,0 +1,45 @@
+.webplayer-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: .8rem;
+    
+}
+
+#playerTitle {
+    font-weight: bold;
+}
+
+#playerState {
+    font-weight: normal;
+    font-size: small;
+    color: var(--text-tenuous);
+    margin-top: .4rem;
+}
+
+.webplayer-middle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: .8rem;
+}
+
+.webplayer-end {
+    display: flex;
+    justify-content: center;
+    gap: .2rem;
+}
+
+form.disabled input,
+form.disabled button {
+    opacity: .3;
+    pointer-events: none;
+}
+
+.webplayer-youtube {
+    display: none;
+    gap: .2rem;
+}
+
+#webpanel[state=youtube] .webplayer-youtube {
+    display: flex;
+}
