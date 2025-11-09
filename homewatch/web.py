@@ -212,6 +212,8 @@ class WebPlayer:
             iframe = self.driver.find_element(By.TAG_NAME, "iframe")
             self.driver.switch_to.frame(iframe)
             self.element = self.driver.find_element(By.TAG_NAME, "body")
+            self.click_at_center()
+            self.click_at_center()
         elif "twitch" in domain:
             self.state = "twitch"
             self.element = self.driver.find_element(By.TAG_NAME, "body")
