@@ -1,4 +1,4 @@
-@import url("https://cdn.jsdelivr.net/npm/@xz/fonts@1/serve/fira-sans.min.css");
+@import url("fira-sans.css");
 
 * {
     box-sizing: border-box;
