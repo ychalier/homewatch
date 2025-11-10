@@ -473,9 +473,9 @@ class Player:
         self.aspect_ratio(status.get("current_aspect_ratio", self.current_aspect_ratio))
 
     def show_waiting_screen(self):
-        self.waiting_screen_visible = True
         if self.vlc_media is not None:
             self.vlc_media.release()
+        self.waiting_screen_visible = True
         path = pathlib.Path(__file__).parent.parent / "sample" / "waiting-screen.mp4"
         mrl = path.as_uri()
         logger.info("Loading waiting screen from MRL \"%s\"", mrl)

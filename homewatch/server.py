@@ -4,7 +4,6 @@ import logging
 import os
 import pathlib
 import subprocess
-import sys
 import threading
 import time
 import urllib.parse
@@ -95,12 +94,18 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
         self.sleep_watcher.start()
 
     def on_time_changed(self, new_time: int):
+        if self.theater.waiting_screen_visible:
+            return
         self._broadcast(f"TIME {new_time}")
 
     def on_media_changed(self, media_path: str | None):
+        if self.theater.waiting_screen_visible:
+            return
         self._broadcast(f"MPTH {media_path}")
 
     def on_media_state_changed(self, new_state: int | None):
+        if self.theater.waiting_screen_visible:
+            return
         self._broadcast(f"MSTT {new_state}")
         if new_state == Player.STATE_ENDED and self.close_on_end:
             self.close()
@@ -506,9 +511,9 @@ class PlayerServer(LibraryServer):
         query = parse_qs(request.url)
         show = query.get("show", "0")
         if show == "0":
-            self.theater.player.hide_waiting_screen()
+            self.theater.hide_waiting_screen()
         else:
-            self.theater.player.show_waiting_screen()
+            self.theater.show_waiting_screen()
         return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
     
     def view_api_wss(self, request: werkzeug.Request) -> werkzeug.Response:
