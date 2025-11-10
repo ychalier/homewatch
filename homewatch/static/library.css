@@ -31,6 +31,7 @@
     overflow: hidden;
     text-decoration: none;
     color: inherit;
+    box-shadow: 0 0 1px black;
 }
 
 .library-element.subfolder.done {
@@ -122,6 +123,7 @@
     user-select: none;
     cursor: pointer;
     aspect-ratio: 2/3;
+    box-shadow: 0 0 1px black;
 }
 
 .media.done:after {
