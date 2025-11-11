@@ -203,8 +203,8 @@ class Media(LibraryEntry):
         self.resolution = resolution
         self.framerate = framerate
         self.thumbnail = thumbnail
-        self.audio_sources = audio_sources
-        self.subtitle_sources = subtitle_sources
+        self.audio_sources = audio_sources[:]
+        self.subtitle_sources = subtitle_sources[:]
         self.name = "Unnamed"
         self.ext = None
         self.title = None
@@ -541,7 +541,7 @@ class Playlist(LibraryEntry):
             basename: str,
             elements: list[str] = []):
         LibraryEntry.__init__(self, folder, basename)
-        self.elements: list[str] = elements
+        self.elements: list[str] = elements[:]
     
     @property
     def title(self) -> str:
