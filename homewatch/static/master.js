@@ -70,7 +70,7 @@ function setSelectedOption(select, value) {
 
 
 window.addEventListener("load", () => {
-    
+
 window.addEventListener("click", () => {
     document.querySelectorAll(".menu").forEach(menu => {
         menu.classList.remove("active");
@@ -133,3 +133,58 @@ if (linkWaitingScreen != null) {
 }
 
 });
+
+class WebsocketClient {
+
+    constructor(apiUrl, onMessage) {
+        this.apiUrl = apiUrl;
+        this.websocket = null;
+        this.retryCount = 0;
+        this.onMessage = onMessage;
+    }
+
+    async connect() {
+        var self = this;
+        const wssUrl = await fetch(`${this.apiUrl}/wss?t=${(new Date()).getTime()}`, { signal: AbortSignal.timeout(5000) })
+            .then(res => res.text())
+            .catch(() => {});
+        if (wssUrl == undefined) {
+            self.retry();
+            return;
+        };
+        this.websocket = new WebSocket(wssUrl);
+        this.websocket.onopen = () => {
+            self.retryCount = 0;
+            console.log("Websocket is connected");
+            document.body.classList.remove("wss-disconnected");
+            document.body.classList.add("wss-connected");
+        }
+        this.websocket.onmessage = (message) => {
+            self.onMessage(message);
+            self.websocket.send("PONG");
+        };
+        this.websocket.onclose = (event) => {
+            self.retry(event);
+        };
+    }
+
+    retry() {
+        this.retryCount++;
+        let delay = 1;
+        if (this.retryCount >= 10) {
+            delay = 30;
+        } else if (this.retryCount >= 3) {
+            delay = 5;
+        }
+        document.body.classList.add("wss-disconnected");
+        document.body.classList.remove("wss-connected");
+        console.log(`Socket is closed. Reconnect will be attempted in ${delay} second.`);
+        var self = this;
+        setTimeout(() => { self.connect(); }, delay * 1000);
+    }
+
+    send(data) {
+        this.websocket.send(data);
+    }
+
+}

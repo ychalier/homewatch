@@ -15,66 +15,28 @@ const STATE_ERROR = 7;
  * Websocket logic
  */
 
-var websocket;
-var websocketRetryCount = 0;
-
-async function connectWebsocket() {
-    const wssUrl = await fetch(`${API_URL}/wss`).catch((error) => {
-        retryConnection({reason: error});
-    }).then(res => res.text());
-    websocket = new WebSocket(wssUrl);
-    websocket.onopen = () => {
-        websocketRetryCount = 0;
-        console.log("Websocket is connected");
-        document.body.classList.remove("wss-disconnected");
-        document.body.classList.add("wss-connected");
+const wssClient = new WebsocketClient(API_URL, (message) => {
+    const key = message.data.slice(0, 4);
+    const value = message.data.slice(5);
+    switch(key) {
+        case "TIME":
+            player.setTime(parseInt(value), false);
+            break;
+        case "MPTH":
+            player.setMediaPath(value);
+            break;
+        case "MSTT":
+            player.setState(parseInt(value));
+            break;
+        case "QUEU":
+            player.fetchQueue();
+            break;
+        case "SDEL":
+            player.setSubtitlesDelay(parseInt(value));
+            break;
     }
-    websocket.onmessage = (message) => {
-        const key = message.data.slice(0, 4);
-        const value = message.data.slice(5);
-        switch(key) {
-            case "TIME":
-                player.setTime(parseInt(value), false);
-                break;
-            case "MPTH":
-                player.setMediaPath(value);
-                break;
-            case "MSTT":
-                player.setState(parseInt(value));
-                break;
-            case "QUEU":
-                player.fetchQueue();
-                break;
-            case "SDEL":
-                player.setSubtitlesDelay(parseInt(value));
-                break;
-        }
-        websocket.send("PONG");
-    };
-    websocket.onclose = (event) => {
-        retryConnection(event);
-    };
-    websocket.onerror = (err) => {
-        console.error("Socket encountered error: ", err.message, "Closing socket");
-        websocket.close();
-    };
-}
-
-function retryConnection(event) {
-    websocketRetryCount++;
-    let delay = 1;
-    if (websocketRetryCount >= 10) {
-        delay = 30;
-    } else if (websocketRetryCount >= 3) {
-        delay = 5;
-    }
-    document.body.classList.add("wss-disconnected");
-    document.body.classList.remove("wss-connected");
-    console.log(`Socket is closed. Reconnect will be attempted in ${delay} second.`, event.reason);
-    setTimeout(() => { connectWebsocket(); }, delay * 1000);
-}
-
-connectWebsocket();
+});
+wssClient.connect();
 
 
 function setSelectValue(selector, value) {
@@ -246,7 +208,7 @@ class Player {
             element.querySelector(".title").textContent = media.title;
             element.querySelector(".subtitle").textContent = media.subtitle;
             element.querySelector(".queue-media").addEventListener("click", () => {
-                websocket.send(`JUMP ${i}`);
+                wssClient.send(`JUMP ${i}`);
             });
             if (i < this.queue.current) {
                 element.querySelector(".queue-media").classList.add("queue-previous");
@@ -268,7 +230,7 @@ class Player {
             displayTime(this.time);
         }
         if (notify) {
-            websocket.send(`SEEK ${this.time}`);
+            wssClient.send(`SEEK ${this.time}`);
         }
     }
 
@@ -288,7 +250,7 @@ class Player {
             setSelectValue("#player-audio-sources", this.audio);
         }
         if (notify) {
-            websocket.send(`ASRC ${this.audio}`);
+            wssClient.send(`ASRC ${this.audio}`);
         }
     }
 
@@ -298,7 +260,7 @@ class Player {
             setSelectValue("#player-subtitle-sources", this.subs);
         }
         if (notify) {
-            websocket.send(`SSRC ${this.subs == null ? "" : this.subs}`);
+            wssClient.send(`SSRC ${this.subs == null ? "" : this.subs}`);
         }
     }
 
@@ -307,7 +269,7 @@ class Player {
         document.getElementById("player-volume").value = this.volume;
         displayVolume(this.volume);
         if (notify) {
-            websocket.send(`VOLU ${this.volume}`);
+            wssClient.send(`VOLU ${this.volume}`);
         }
     }
 
@@ -320,7 +282,7 @@ class Player {
         this.aspectRatio = newAspectRatio == null ? "" : newAspectRatio;
         setSelectValue("#player-select-aspect", this.aspectRatio);
         if (notify) {
-            websocket.send(`ASPR ${this.aspectRatio}`);
+            wssClient.send(`ASPR ${this.aspectRatio}`);
         }
     }
 
@@ -332,7 +294,7 @@ class Player {
             document.getElementById("button-autoplay").classList.add("off");
         }
         if (notify) {
-            websocket.send(`AUTO ${this.autoplay ? "1" : "0"}`);
+            wssClient.send(`AUTO ${this.autoplay ? "1" : "0"}`);
         }
     }
 
@@ -344,7 +306,7 @@ class Player {
             document.getElementById("button-shuffle").classList.add("off");
         }
         if (notify) {
-            websocket.send(`SHUF ${this.shuffle ? "1" : "0"}`);
+            wssClient.send(`SHUF ${this.shuffle ? "1" : "0"}`);
         }
         this.fetchQueue();
     }
@@ -353,7 +315,7 @@ class Player {
         this.closeOnEnd = newCloseOnEnd;
         document.getElementById("button-closeonend").textContent = "Éteindre le serveur après la lecture : " + (this.closeOnEnd ? "ON" : "OFF");
         if (notify) {
-            websocket.send(`CLOS ${this.closeOnEnd ? "1" : "0"}`);
+            wssClient.send(`CLOS ${this.closeOnEnd ? "1" : "0"}`);
         }
     }
 
@@ -362,7 +324,7 @@ class Player {
         this.sleepAt = newSleepAt;
         displaySleepAt();
         if (notify) {
-            websocket.send(`SLEE ${this.sleepAt == null ? "0" : this.sleepAt}`);
+            wssClient.send(`SLEE ${this.sleepAt == null ? "0" : this.sleepAt}`);
         }
     }
 
@@ -419,7 +381,7 @@ if (FIRST_LIBRARY_LOAD) {
  */
 
 window.addEventListener("focus", () => {
-    websocket.send("MEDI");
+    wssClient.send("MEDI");
     player.fetchQueue();
 });
 
@@ -452,32 +414,32 @@ document.querySelector(".library").addEventListener("click", () => {
 
 bindButton("button-play", () => {
     if (player.state == STATE_PLAYING || player.state == STATE_PAUSED) {
-        websocket.send("PAUS");
+        wssClient.send("PAUS");
     } else if (player.state == STATE_STOPPED) {
-        websocket.send("PLAY");
+        wssClient.send("PLAY");
     } else if (player.state == STATE_ENDED) {
-        websocket.send("RPLY");
+        wssClient.send("RPLY");
     }
 });
 
 bindButton("button-rewind", () => {
-    websocket.send("RWND");
+    wssClient.send("RWND");
 });
 
 bindButton("button-fastforward", () => {
-    websocket.send("FFWD");
+    wssClient.send("FFWD");
 });
 
 bindButton("button-subs-delay-later", () => {
-    websocket.send("SLAT");
+    wssClient.send("SLAT");
 });
 
 bindButton("button-subs-delay-earlier", () => {
-    websocket.send("SEAR");
+    wssClient.send("SEAR");
 });
 
 bindButton("button-subs-delay-reset", () => {
-    websocket.send("SRST");
+    wssClient.send("SRST");
 });
 
 function displayVolume(volume) {
@@ -550,9 +512,9 @@ document.querySelectorAll(".timebar-input").forEach(input => {
     });
 });
 
-bindButton("button-prev", () => { websocket.send("PREV"); });
+bindButton("button-prev", () => { wssClient.send("PREV"); });
 
-bindButton("button-next", () => { websocket.send("NEXT"); });
+bindButton("button-next", () => { wssClient.send("NEXT"); });
 
 bindButton("button-autoplay", () => { player.setAutoplay(!player.autoplay); });
 
