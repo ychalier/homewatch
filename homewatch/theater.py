@@ -139,12 +139,14 @@ class Theater(PlayerObserver):
             progress = self.history[media]
             setattr(media, "progress", progress)
             done = progress > 0 and progress >= (media.duration - settings.MARK_AS_VIEWED_THRESHOLD_SECONDS) * 1000 and progress / (1000 * media.duration) >= settings.MARK_AS_VIEWED_THRESHOLD_RATIO
+            setattr(media, "unstarted", progress == 0)
             setattr(media, "done", done)
         for subfolder in library_folder.subfolders:
             progress, duration = self.get_folder_progress(self.library.get_subfolder(library_folder, subfolder))
             setattr(subfolder, "progress", progress)
             setattr(subfolder, "duration", duration)
             done = progress > 0 and progress >= duration - settings.MARK_AS_VIEWED_THRESHOLD_SECONDS * 1000 and progress / duration >= settings.MARK_AS_VIEWED_THRESHOLD_RATIO
+            setattr(subfolder, "unstarted", progress == 0)
             setattr(subfolder, "done", done)
 
     def set_viewed_media(self, media: Media, viewed: bool):
