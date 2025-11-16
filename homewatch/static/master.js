@@ -141,6 +141,7 @@ class WebsocketClient {
         this.websocket = null;
         this.retryCount = 0;
         this.onMessage = onMessage;
+        this.connected = false;
     }
 
     async connect() {
@@ -158,6 +159,7 @@ class WebsocketClient {
             console.log("Websocket is connected");
             document.body.classList.remove("wss-disconnected");
             document.body.classList.add("wss-connected");
+            self.connected = true;
         }
         this.websocket.onmessage = (message) => {
             self.onMessage(message);
@@ -165,6 +167,7 @@ class WebsocketClient {
         };
         this.websocket.onclose = (event) => {
             self.retry(event);
+            self.connected = false;
         };
     }
 
@@ -184,6 +187,12 @@ class WebsocketClient {
     }
 
     send(data) {
+        if (!this.connected) {
+            console.warn("Tried to send a message but the websocket isn't connected. Retrying in 1 second.")
+            var self = this;
+            setTimeout(() => { self.send(data); }, 1000);
+            return;
+        }
         this.websocket.send(data);
     }
 

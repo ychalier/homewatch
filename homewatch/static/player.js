@@ -128,6 +128,7 @@ class Player {
     }
 
     loadPlayerData(playerData) {
+        console.log("loading player data", playerData);
         this.setMediaPath(playerData.mediaPath);
         this.setState(playerData.state);
         this.setTime(playerData.time, false);
