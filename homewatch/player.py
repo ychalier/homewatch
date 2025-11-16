@@ -111,6 +111,21 @@ class VlcEvent:
     VlmMediaRemoved = vlc.EventType(1537)
 
 
+def get_state_name(state: int | None) -> str:
+    if state is None:
+        return "None"
+    return [
+        "NothingSpecial",
+        "Opening",
+        "Buffering",
+        "Playing",
+        "Paused",
+        "Stopped",
+        "Ended",
+        "Error"
+    ][state]
+
+
 VlcMediaSlaveTypeAudio = vlc.MediaSlaveType(1)
 VlcMediaSlaveTypeSubtitle = vlc.MediaSlaveType(0)
 
@@ -215,7 +230,7 @@ class Player:
         )
         for event_type in state_event_types:
             def callback(event, player):
-                logger.info("Event fired: state changed to %s (old state is %s)", self.state, self._old_state)
+                logger.info("Event fired: state changed to %s (old state is %s)", get_state_name(self.state), get_state_name(self._old_state))
                 new_state = self.state
                 if self._old_state == new_state:
                     return
@@ -426,17 +441,21 @@ class Player:
             self.vlc_media_player.add_slave(VlcMediaSlaveTypeSubtitle, uri, 1)
 
     def close(self):
-        logger.info("Closing player")
+        logger.debug("Closing player")
         try:
             if self.vlc_media_player is not None:
-                self.vlc_media_player.release()
-        except OSError:
-            pass
+                # NOTE: for some reason, realeasing the player here
+                # makes the program silently crash, and I don't understand why.
+                # self.vlc_media_player.release()
+                pass
+        except OSError as err:
+            logger.warning(err)
         try:
             if self.vlc_instance is not None:
                 self.vlc_instance.release()
-        except OSError:
-            pass
+        except OSError as err:
+            logger.warning(err)
+        logger.info("Closed player")
 
     def bind_observer(self, observer: PlayerObserver):
         logger.info("Binding observer %s", observer)

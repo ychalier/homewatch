@@ -104,6 +104,7 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
         self._broadcast(f"MPTH {media_path}")
 
     def on_media_state_changed(self, new_state: int | None):
+        logger.debug("Media state changed to %s. Waiting screen is %s.", new_state, "ON" if self.theater.waiting_screen_visible else "OFF")
         if self.theater.waiting_screen_visible:
             return
         self._broadcast(f"MSTT {new_state}")
@@ -342,13 +343,15 @@ class PlayerServer(LibraryServer):
         return None
 
     def close(self, hooks: bool = True, restart: bool = False):
-        logger.info("Closing server")
+        logger.info("Closing server, hooks %s, restart %s", "ON" if hooks else "OFF", "ON" if restart else "OFF")
         self.export_status()
         self.theater.close()
         if hooks:
+            logger.debug("Post hooks are enabled: %s", ", ".join(settings.POST_HOOKS))
             for hook_path in settings.POST_HOOKS:
                 execute_hook(hook_path)
         if restart:
+            logger.info("Restarting")
             os._exit(42)
         else:
             os._exit(0)
