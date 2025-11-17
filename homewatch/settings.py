@@ -26,7 +26,7 @@ LIBRARY_ROOT = os.path.realpath("sample")
 VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm", ".wmv"}
 
 # Set of subtitle file extensions (anything else will be ignored)
-SUBTITLE_EXTS = {".srt", ".sub"}
+SUBTITLE_EXTS = {".srt", ".sub", ".ass"}
 
 # Set of playlist file extensions (anything else will be ignored)
 PLAYLIST_EXTS = {".playlist"}
