@@ -219,7 +219,7 @@
 
 .panel button,
 .panel select {
-    width: fit-content;
+    max-width: fit-content;
 }
 
 @keyframes fadein {
@@ -349,7 +349,6 @@
     
     .player-left .inline-media-poster-wrapper {
         height: unset;
-        width: 100%;
     }
     
     .player-left .inline-media-poster {
