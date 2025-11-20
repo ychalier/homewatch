@@ -20,7 +20,7 @@ LIBRARY_MODE = "remote"
 # root folder containing media files. If the library mode is 'remote', this
 # should be the URL to the remote Homewatch server, ending with '/library/'
 # (the trailing slash is important).
-LIBRARY_ROOT = "http://192.168.1.32/homewatch/library/" # os.path.realpath("sample")
+LIBRARY_ROOT = os.path.realpath("sample")
 
 # Set of media file extensions (anything else will be ignored)
 VIDEO_EXTS = {".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm", ".wmv"}
@@ -71,7 +71,7 @@ SERVER_MODE = "player"
 # URL settings
 HOME_URL = "/"
 STATIC_URL = "/static/"
-MEDIA_URL = "http://192.168.1.32/homewatch/media/" # "/media/"
+MEDIA_URL = "/media/"
 
 # Path to scripts (Bash, Powershell, …) that will be executed either just before
 # the server starts (pre-hooks) or when the server closes (post-hooks). Paths
