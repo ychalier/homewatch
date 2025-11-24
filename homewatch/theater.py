@@ -185,6 +185,8 @@ class Theater(PlayerObserver):
         }
 
     def load_status_dict(self, status: dict):
+        if self.waiting_screen_visible:
+            self.hide_waiting_screen()
         self.autoplay = status.get("autoplay", self.autoplay)
         self.queue.load_status_dict(status.get("queue", {}), self.library)
         self.player.load_status_dict(status.get("player", {}), self.library)

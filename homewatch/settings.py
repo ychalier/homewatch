@@ -14,7 +14,7 @@ from pathlib import Path
 
 # Library can either be 'local', ie. a local folder containing media files and
 # subfolders, or 'remote', ie. it can fetched from another Homewatch server.
-LIBRARY_MODE = "remote"
+LIBRARY_MODE = "local"
 
 # If the library mode is 'local', then this should be an absolute path to the
 # root folder containing media files. If the library mode is 'remote', this
