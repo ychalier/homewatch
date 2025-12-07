@@ -1,4 +1,5 @@
 import dataclasses
+import hashlib
 import json
 import logging
 import os
@@ -378,6 +379,14 @@ class Media(LibraryEntry):
         if video_codec is None:
             return container + f'; codecs="{audio_codec}"'
         return container + f'; codecs="{video_codec}, {audio_codec}"'
+    
+    @property
+    def audio_and_subs_hash(self) -> str:
+        data = {
+            "audio": [(source.index, source.title, source.language) for source in self.audio_sources],
+            "subtitles": [(source.type, source.index if isinstance(source, SubtitleTrack) else None, source.title, source.language) for source in self.subtitle_sources]
+        }
+        return hashlib.md5(json.dumps(data).encode()).hexdigest()
 
     def to_dict(self) -> dict:
         return {

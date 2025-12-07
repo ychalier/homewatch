@@ -9,12 +9,13 @@ Requires `libvlc.dll` on Windows
 import logging
 import os
 import pathlib
+import sys
 import urllib.parse
 
 from .library import Library, Media, SUBTITLE_TRACK, SUBTITLE_FILE, SubtitleTrack, SubtitleFile
 from . import settings
 
-if settings.VLC_DLL_DIRECTORY is not None and os.path.isdir(settings.VLC_DLL_DIRECTORY):
+if settings.VLC_DLL_DIRECTORY is not None and os.path.isdir(settings.VLC_DLL_DIRECTORY) and sys.platform == "win32":
     os.add_dll_directory(settings.VLC_DLL_DIRECTORY)
 import vlc
 
@@ -164,6 +165,7 @@ class Player:
         self._waiting_to_pause = False
         self._waiting_to_stop = False
         self.waiting_screen_visible: bool = False
+        self._previous_audio_and_subs_hash: str | None = None
 
     @property
     def media_path(self) -> str | None:
@@ -277,10 +279,21 @@ class Player:
             self.stop()
 
     def auto_select_sources(self):
+        previous_audio_source = self.selected_audio_source
+        previous_subtitle_source = self.selected_subtitle_source
+
         self.selected_audio_source = None
         self.selected_subtitle_source = None
 
         if self.media is None:
+            return
+        
+        current_audio_and_subs_hash = self.media.audio_and_subs_hash
+        if current_audio_and_subs_hash == self._previous_audio_and_subs_hash:
+            self.selected_audio_source = previous_audio_source
+            self.selected_subtitle_source = previous_subtitle_source
+            logger.info("Audio an subtitles sources match previous state. Re-selecting audio source %s and subtitle source %s",
+                self.selected_audio_source, self.selected_subtitle_source)
             return
 
         foreign_audio_track = 0
@@ -317,6 +330,7 @@ class Player:
         logger.info("Loading media at %s", media.path)
         self.media = media
         self.auto_select_sources()
+        self._previous_audio_and_subs_hash = self.media.audio_and_subs_hash
         self._waiting_to_play = play
         self.current_subs_delay = 0
         self.reload()
