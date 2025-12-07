@@ -92,10 +92,15 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
         self.player.bind_observer(self)
         self.sleep_watcher = SleepWatcher(self)
         self.sleep_watcher.start()
+        self._previous_time_broadcast: int | None = None
 
     def on_time_changed(self, new_time: int):
         if self.theater.waiting_screen_visible:
             return
+        if self._previous_time_broadcast is not None and new_time != 0 and abs(new_time - self._previous_time_broadcast) < settings.BROADCAST_TIME_DELAY_MILLISECONDS:
+            logger.debug("Ignored time broadcast at time %d", new_time)
+            return
+        self._previous_time_broadcast = new_time
         self._broadcast(f"TIME {new_time}")
 
     def on_media_changed(self, media_path: str | None):

@@ -1,8 +1,8 @@
 window.addEventListener("load", () => {
 
 const wssClient = new WebsocketClient(API_URL, (message) => {
-    const key = message.data.slice(0, 7);
-    const value = message.data.slice(8);
+    const key = message.slice(0, 7);
+    const value = message.slice(8);
     switch(key) {
         case "WEBLOAD":
             const body = JSON.parse(value);

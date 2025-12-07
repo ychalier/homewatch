@@ -124,6 +124,11 @@ LANGUAGE_FLAGS = {
 PREFERRED_MEDIA_LANGUAGE_CODES = LANGUAGE_CODES[PREFERRED_MEDIA_LANGUAGE]
 PREFERRED_MEDIA_LANGUAGE_FLAG = LANGUAGE_FLAGS[PREFERRED_MEDIA_LANGUAGE]
 
+# Delay between two time update message the websocket server has to wait for.
+# Prevents self-DDOS when messages are fired too quickly, which may occur for
+# some media files.
+BROADCAST_TIME_DELAY_MILLISECONDS = 900
+
 # =================== #
 # Web Player settings #
 # =================== #

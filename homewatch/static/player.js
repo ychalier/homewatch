@@ -16,8 +16,8 @@ const STATE_ERROR = 7;
  */
 
 const wssClient = new WebsocketClient(API_URL, (message) => {
-    const key = message.data.slice(0, 4);
-    const value = message.data.slice(5);
+    const key = message.slice(0, 4);
+    const value = message.slice(5);
     switch(key) {
         case "TIME":
             player.setTime(parseInt(value), false);
@@ -25,7 +25,7 @@ const wssClient = new WebsocketClient(API_URL, (message) => {
         case "MPTH":
             player.setMediaPath(value);
             fetch(`${API_URL}/player`).then(res =>  res.json()).then(data => {
-                player.loadPlayerData(data);
+                player.loadPlayerData(data, true);
             });
             break;
         case "MSTT":
@@ -130,9 +130,11 @@ class Player {
         this.queue = null;
     }
 
-    loadPlayerData(playerData) {
+    loadPlayerData(playerData, skipMediaPath=false) {
         console.log("loading player data", playerData);
-        this.setMediaPath(playerData.mediaPath);
+        if (!skipMediaPath) {
+            this.setMediaPath(playerData.mediaPath);
+        }
         this.setState(playerData.state);
         this.setTime(playerData.time, false);
         this.setAudio(playerData.audio, false);
@@ -147,6 +149,7 @@ class Player {
     }
 
     fetchMedia() {
+        if (this.mediaPath == null) return;
         fetch(`${API_URL}/media?path=${this.mediaPath.replaceAll("&", "%26")}`)
             .then(res => res.json())
             .then(data => {
@@ -168,6 +171,7 @@ class Player {
             document.querySelector(".player").classList.remove("hidden");
         }
         if (this.mediaPath == newMediaPath) return;
+        console.log("Setting new media path to", newMediaPath, "Old is", this.mediaPath);
         this.mediaPath = newMediaPath;
         this.fetchMedia();
         this.fetchQueue();

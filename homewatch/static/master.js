@@ -162,7 +162,8 @@ class WebsocketClient {
             self.connected = true;
         }
         this.websocket.onmessage = (message) => {
-            self.onMessage(message);
+            //console.debug("WSS data:", message.data);
+            self.onMessage(message.data);
             self.websocket.send("PONG");
         };
         this.websocket.onclose = (event) => {

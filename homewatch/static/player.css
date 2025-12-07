@@ -123,6 +123,11 @@
     margin: 0;
 }
 
+.timebar-input:focus,
+.timebar-input:active {
+    outline: none;
+}
+
 .timebar-input::-moz-range-track {
     height: 1px;
 }
