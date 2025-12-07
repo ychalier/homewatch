@@ -33,8 +33,7 @@ function registerUserLocation() {
 function setViewedMedia(path, viewed, mediaProgress) {
     fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
         .then(() => {
-            closeMediaDetails();
-            mediaProgress.value = viewed == 1 ? parseFloat(mediaProgress.max) : 0;
+            window.location.reload();
         });
 }
 
