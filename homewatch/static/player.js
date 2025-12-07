@@ -24,6 +24,9 @@ const wssClient = new WebsocketClient(API_URL, (message) => {
             break;
         case "MPTH":
             player.setMediaPath(value);
+            fetch(`${API_URL}/player`).then(res =>  res.json()).then(data => {
+                player.loadPlayerData(data);
+            });
             break;
         case "MSTT":
             player.setState(parseInt(value));
