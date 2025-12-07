@@ -11,7 +11,7 @@ from .server import runserver
 def setup_logging(verbose: bool = False):
     BASE_DIR = pathlib.Path(__file__).parent.parent
     logger = logging.getLogger("homewatch")
-    syslog = logging.FileHandler(filename=BASE_DIR / "homewatch.log", mode="w", encoding="utf8")
+    syslog = logging.FileHandler(filename=BASE_DIR / "homewatch.log", mode="a", encoding="utf8")
     syslog.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s %(name)-18s %(message)s"))
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
     logger.addHandler(syslog)
