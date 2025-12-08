@@ -1,11 +1,13 @@
 import argparse
 import json
 import logging
+import os
 import pathlib
 import re
 
 from .library import Library
 from .server import runserver
+from . import settings
 
 
 def setup_logging(verbose: bool = False):
@@ -33,6 +35,31 @@ def parse_host_string(string: str, default_hostname: str = "127.0.0.1",
     return hostname, port
 
 
+def build_sample_directory():
+    import requests, tqdm
+    root = os.path.realpath("sample")
+    target_files = [
+        ("Big Buck Bunny (Blender Foundation, 2014).avi", "https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_stereo.avi"),
+        ("Sintel (Blender Foundation, 2010).mkv", "https://download.blender.org/durian/movies/Sintel.2010.720p.mkv"),
+        ("Sintel (Blender Foundation, 2010).en.srt", "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt"),
+        ("Sintel (Blender Foundation, 2010).fr.srt", "https://durian.blender.org/wp-content/content/subtitles/sintel_fr.srt"),
+    ]
+    for filename, url in target_files:
+        path = os.path.join(root, filename)
+        if os.path.isfile(path):
+            continue
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        length = response.headers.get("content-length")
+        pbar = tqdm.tqdm(total=int(length) if length is not None else None, unit="B", unit_divisor=1024, unit_scale=True)
+        pbar.set_description(filename)
+        with open(path, "wb") as file:
+            for data in response.iter_content(chunk_size=4096):
+                file.write(data)
+                pbar.update(len(data))
+        pbar.close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -47,6 +74,8 @@ def main():
     parser_runserver.add_argument("-q", "--qrcode", action="store_true")
     args = parser.parse_args()
     setup_logging(args.verbose)
+    if settings.LIBRARY_MODE == "local" and settings.LIBRARY_ROOT == os.path.realpath("sample"):
+        build_sample_directory()
     match args.action:
         case "scan":
             root = pathlib.Path(args.root)
