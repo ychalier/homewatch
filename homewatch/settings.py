@@ -94,8 +94,9 @@ HISTORY_PATH = "history"
 # File path to export theater status
 STATUS_PATH = "status.json"
 
-# Enable waiting screen at startup
+# Waiting screen
 SHOW_WAITING_SCREEN_AT_STARTUP = True
+WAITING_SCREEN_VOLUME_FACTOR = 0.5
 
 # Default settings
 DEFAULT_AUTOPLAY = True

@@ -166,6 +166,7 @@ class Player:
         self._waiting_to_stop = False
         self.waiting_screen_visible: bool = False
         self._previous_audio_and_subs_hash: str | None = None
+        self._volume_before_waiting_screen: int = self.current_volume
 
     @property
     def media_path(self) -> str | None:
@@ -287,7 +288,7 @@ class Player:
 
         if self.media is None:
             return
-        
+
         current_audio_and_subs_hash = self.media.audio_and_subs_hash
         if current_audio_and_subs_hash == self._previous_audio_and_subs_hash:
             self.selected_audio_source = previous_audio_source
@@ -515,11 +516,14 @@ class Player:
         assert self.vlc_instance is not None
         self.vlc_media = self.vlc_instance.media_new(mrl)
         assert self.vlc_media_player is not None
+        self._volume_before_waiting_screen = self.current_volume
+        self.volume(int(self.current_volume * settings.WAITING_SCREEN_VOLUME_FACTOR))
         self.vlc_media_player.set_media(self.vlc_media)
         self.vlc_media_player.play()
         self._playback_begins = True
 
     def hide_waiting_screen(self):
         self.waiting_screen_visible = False
+        self.volume(self._volume_before_waiting_screen)
         if self.vlc_media_player is not None:
             self.vlc_media_player.stop()
