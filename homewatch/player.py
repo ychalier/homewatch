@@ -195,7 +195,7 @@ class Player:
 
     def setup(self):
         logger.info("Setting up the player")
-        self.vlc_instance = vlc.Instance("--quiet")
+        self.vlc_instance = vlc.Instance("--no-xlib --quiet")
         if not isinstance(self.vlc_instance, vlc.Instance):
             raise RuntimeError(f"Failed to initialized VLC instance")
         self.vlc_media_player = self.vlc_instance.media_player_new()
