@@ -31,7 +31,7 @@ function registerUserLocation() {
 
 
 function setViewedMedia(path, viewed, mediaProgress) {
-    fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
+    fetch(`${API_URL}/history?path=${path.replaceAll("&", "%26")}&viewed=${viewed}`, {method: "post"})
         .then(() => {
             window.location.reload();
         });
@@ -39,7 +39,7 @@ function setViewedMedia(path, viewed, mediaProgress) {
 
 
 function setViewedFolder(path, viewed) {
-    fetch(`${API_URL}/history?path=${path}&viewed=${viewed}`, {method: "post"})
+    fetch(`${API_URL}/history?path=${path.replaceAll("&", "%26")}&viewed=${viewed}`, {method: "post"})
         .then(() => {
             window.location.reload();
         });
