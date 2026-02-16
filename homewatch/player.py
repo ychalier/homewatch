@@ -166,7 +166,7 @@ class Player:
         self._waiting_to_stop = False
         self.waiting_screen_visible: bool = False
         self._previous_audio_and_subs_hash: str | None = None
-        self._volume_before_waiting_screen: int = self.current_volume
+        self._volume_before_waiting_screen: int = self.default_volume
 
     @property
     def media_path(self) -> str | None:
@@ -509,18 +509,19 @@ class Player:
     def show_waiting_screen(self):
         if self.vlc_media is not None:
             self.vlc_media.release()
-        self.waiting_screen_visible = True
         path = pathlib.Path(__file__).parent.parent / "sample" / "waiting-screen.mp4"
         mrl = path.as_uri()
         logger.info("Loading waiting screen from MRL \"%s\"", mrl)
         assert self.vlc_instance is not None
         self.vlc_media = self.vlc_instance.media_new(mrl)
         assert self.vlc_media_player is not None
-        self._volume_before_waiting_screen = self.current_volume
-        self.volume(int(self.current_volume * settings.WAITING_SCREEN_VOLUME_FACTOR))
+        if not self.waiting_screen_visible:
+            self._volume_before_waiting_screen = self.current_volume
+        self.volume(settings.WAITING_SCREEN_VOLUME)
         self.vlc_media_player.set_media(self.vlc_media)
         self.vlc_media_player.play()
         self._playback_begins = True
+        self.waiting_screen_visible = True
 
     def hide_waiting_screen(self):
         self.waiting_screen_visible = False
