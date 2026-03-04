@@ -88,9 +88,27 @@ def sget_float(*args, **kwargs) -> float:
     return value
 
 
+def guess_local_ip() -> str:
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.connect(("<broadcast>", 12345))
+    return s.getsockname()[0]
+
 
 @dataclass
 class Settings:
+
+    server_mode: Literal["library"] | Literal["player"]
+    server_host: str
+    server_port: int
+
+    home_url: str
+    static_url: str
+    media_url: str
+
+    pre_hooks: list[str]
+    post_hooks: list[str]
 
     library_mode: Literal["local"] | Literal["remote"]
     library_root: str
@@ -104,14 +122,6 @@ class Settings:
     mark_as_viewed_threshold_seconds: float
     mark_as_viewed_threshold_ratio: float
 
-    server_mode: Literal["library"] | Literal["player"]
-
-    home_url: str
-    static_url: str
-    media_url: str
-
-    pre_hooks: list[str]
-    post_hooks: list[str]
 
     vlc_dll_directory: str | None
     history_path: str
@@ -143,6 +153,14 @@ class Settings:
         with open(path, "rb") as file:
             data.update(tomllib.load(file))
         return cls(
+            server_mode=sget(data, "server_mode", assert_in=["library", "player"]), # type: ignore
+            server_host=sget_str(data, "server_host", default=guess_local_ip(), empty_is_none=True, none_is_default=True),
+            server_port=sget_int(data, "server_port"),
+            home_url=sget_str(data, "home_url"),
+            static_url=sget_str(data, "static_url"),
+            media_url=sget_str(data, "media_url"),
+            pre_hooks=sget_liststr(data, "pre_hooks"),
+            post_hooks=sget_liststr(data, "post_hooks"),
             library_mode=sget(data, "library_mode", assert_in=["local", "remote"]), # type: ignore
             library_root=sget_str(data, "library_root"),
             video_exts=sget_setstr(data, "video_exts"),
@@ -154,12 +172,6 @@ class Settings:
             chromecast_generation=ChromecastGeneration(sget_int(data, "chromecast_generation")),
             mark_as_viewed_threshold_seconds=sget_int(data, "mark_as_viewed_threshold_seconds"),
             mark_as_viewed_threshold_ratio=sget_float(data, "mark_as_viewed_threshold_ratio"),
-            server_mode=sget(data, "server_mode", assert_in=["library", "player"]), # type: ignore
-            home_url=sget_str(data, "home_url"),
-            static_url=sget_str(data, "static_url"),
-            media_url=sget_str(data, "media_url"),
-            pre_hooks=sget_liststr(data, "pre_hooks"),
-            post_hooks=sget_liststr(data, "post_hooks"),
             vlc_dll_directory=sget(data, "vlc_dll_directory", empty_is_none=True),
             history_path=sget_str(data, "history_path"),
             status_path=sget_str(data, "status_path"),

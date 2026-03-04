@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Get MAC address using the `bt-device -l` command from the bluez-tools package
 devicemac=""

@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import pathlib
-import re
 
 from .library import Library
 from .server import runserver
@@ -20,19 +19,6 @@ def setup_logging(verbose: bool = False):
     werkzeug_logger = logging.getLogger("werkzeug")
     werkzeug_logger.setLevel(logging.INFO)
     werkzeug_logger.addHandler(syslog)
-
-
-def parse_host_string(string: str, default_hostname: str = "127.0.0.1",
-                      default_port: int = 8000) -> tuple[str, int]:
-    if string is None:
-        return default_hostname, default_port
-    m = re.match(r"^(?:https?://)?([A-Za-z0-9\.]+)(?::(\d+))?$", string)
-    hostname, port = default_hostname, default_port
-    if m is not None:
-        hostname = m.group(1)
-        if m.group(2) is not None:
-            port = int(m.group(2))
-    return hostname, port
 
 
 def build_sample_directory():
@@ -92,5 +78,4 @@ def main():
             else:
                 print(json.dumps(library.to_dict()))
         case "runserver":
-            hostname, port = parse_host_string(args.host)
-            runserver(settings, hostname, port, args.debug, args.qrcode)
+            runserver(settings, args.debug, args.qrcode)

@@ -320,12 +320,12 @@ class LibraryServer:
 
 class PlayerServer(LibraryServer):
 
-    def __init__(self, settings: Settings, hostname: str, port: int):
+    def __init__(self, settings: Settings):
         LibraryServer.__init__(self, settings)
         self.theater = Theater(settings)
-        self.wss = WebsocketServer(self, hostname)
-        self.hostname = hostname
-        self.port = port
+        self.wss = WebsocketServer(self, settings.server_host)
+        self.hostname = settings.server_host
+        self.port = settings.server_port
         self.wss.start()
         self.web_player: WebPlayer | None = None
         for hook_path in settings.pre_hooks:
@@ -567,11 +567,11 @@ class PlayerServer(LibraryServer):
         return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
 
 
-def create_app(settings: Settings, hostname: str = "127.0.0.1", port: int = 8000, with_static: bool = True):
+def create_app(settings: Settings, with_static: bool = True):
     if settings.server_mode == "library":
         app = LibraryServer(settings)
     else:
-        app = PlayerServer(settings, hostname, port)
+        app = PlayerServer(settings)
     logger.info("Created WSGI app %s", app.__class__.__name__)
     if with_static:
         app.wsgi_app = werkzeug.middleware.shared_data.SharedDataMiddleware(
@@ -591,17 +591,16 @@ def execute_hook(path: str):
     subprocess.run(str(p), shell=True, start_new_session=True)
 
 
-def runserver(settings: Settings, hostname: str = "127.0.0.1", port: int = 8000,
-              debug: bool = False, show_qrcode: bool = False):
-    app = create_app(settings, hostname, port)
-    logger.info("Starting Werkzeug development server at %s:%d", hostname, port)
+def runserver(settings: Settings, debug: bool = False, show_qrcode: bool = False):
+    app = create_app(settings)
+    logger.info("Starting Werkzeug development server at %s:%d", settings.server_host, settings.server_port)
     if show_qrcode:
         qr = qrcode.QRCode()
-        qr.add_data(f"http://{hostname}:{port}")
+        qr.add_data(f"http://{settings.server_host}:{settings.server_port}")
         qr.print_ascii()
-    print(f"Server is up at http://{hostname}:{port}, press ^C to quit")
+    print(f"Server is up at http://{settings.server_host}:{settings.server_port}, press ^C to quit")
     werkzeug.serving.run_simple(
-        hostname, port,
+        settings.server_host, settings.server_port,
         app,
         use_debugger=debug,
         use_reloader=debug,

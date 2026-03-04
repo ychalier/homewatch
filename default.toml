@@ -1,3 +1,21 @@
+# Server can either be a 'library' and only serve the raw content and the
+# library indexes, or a 'player', in which case it will link to VLC to control
+# media playback.
+server_mode = "player"
+server_host = ""
+server_port = 8000
+
+# URL settings
+home_url = "/"
+static_url = "/static/"
+media_url = "/media/"
+
+# Path to scripts (Bash, Powershell, …) that will be executed either just before
+# the server starts (pre-hooks) or when the server closes (post-hooks). Paths
+# can either be absolute or relative to the `hooks` folder.
+pre_hooks = []
+post_hooks = []
+
 # Library can either be 'local', ie. a local folder containing media files and
 # subfolders, or 'remote', ie. it can fetched from another Homewatch server.
 library_mode = "local"
@@ -41,22 +59,6 @@ chromecast_generation = 0
 # ie. it has been completely seen.
 mark_as_viewed_threshold_seconds = 30
 mark_as_viewed_threshold_ratio = 0.98
-
-# Server can either be a 'library' and only serve the raw content and the
-# library indexes, or a 'player', in which case it will link to VLC to control
-# media playback.
-server_mode = "player"
-
-# URL settings
-home_url = "/"
-static_url = "/static/"
-media_url = "/media/"
-
-# Path to scripts (Bash, Powershell, …) that will be executed either just before
-# the server starts (pre-hooks) or when the server closes (post-hooks). Paths
-# can either be absolute or relative to the `hooks` folder.
-pre_hooks = []
-post_hooks = []
 
 # On Windows, one must specify the path to the VLC installation directory,
 # eg. C:\Program Files\VideoLAN\VLC. This is not required on Linux, in which
