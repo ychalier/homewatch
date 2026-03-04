@@ -8,7 +8,6 @@ __pycache__
 
 history
 sample
-!sample/waiting-screen.mp4
 
 .extensions
 geckodriver*

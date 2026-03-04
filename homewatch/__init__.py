@@ -21,15 +21,17 @@ def setup_logging(verbose: bool = False):
     werkzeug_logger.addHandler(syslog)
 
 
-def build_sample_directory():
+def build_sample_directory(full: bool):
     import requests, tqdm
     root = os.path.realpath("sample")
-    target_files = [
-        ("Big Buck Bunny (Blender Foundation, 2014).avi", "https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_stereo.avi"),
-        ("Sintel (Blender Foundation, 2010).mkv", "https://download.blender.org/durian/movies/Sintel.2010.720p.mkv"),
-        ("Sintel (Blender Foundation, 2010).en.srt", "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt"),
-        ("Sintel (Blender Foundation, 2010).fr.srt", "https://durian.blender.org/wp-content/content/subtitles/sintel_fr.srt"),
-    ]
+    target_files = [("waiting-screen.mp4", "https://drive.chalier.fr/protected/waiting-screen.mp4")]
+    if full:
+        target_files += [
+            ("Big Buck Bunny (Blender Foundation, 2014).avi", "https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_stereo.avi"),
+            ("Sintel (Blender Foundation, 2010).mkv", "https://download.blender.org/durian/movies/Sintel.2010.720p.mkv"),
+            ("Sintel (Blender Foundation, 2010).en.srt", "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt"),
+            ("Sintel (Blender Foundation, 2010).fr.srt", "https://durian.blender.org/wp-content/content/subtitles/sintel_fr.srt"),
+        ]
     for filename, url in target_files:
         path = os.path.join(root, filename)
         if os.path.isfile(path):
@@ -61,8 +63,7 @@ def main():
     args = parser.parse_args()
     setup_logging(args.verbose)
     settings = Settings.from_file(args.config)
-    if settings.library_mode == "local" and settings.library_root == os.path.realpath("sample"):
-        build_sample_directory()
+    build_sample_directory(settings.library_mode == "local" and settings.library_root == os.path.realpath("sample"))
     match args.action:
         case "scan":
             root = pathlib.Path(args.root)
