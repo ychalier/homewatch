@@ -16,6 +16,21 @@ while true; do
     sleep 1
 done
 
+# Check for update
+git --version 2>&1 >/dev/null
+GIT_IS_AVAILABLE=$?
+if [ $GIT_IS_AVAILABLE -eq 0 ]; then
+    CURRENT_BRANCH=$(git branch --show-current)
+    if [ "$CURRENT_BRANCH" == "main" ]; then
+        git pull
+    else
+        git checkout main
+        git pull
+        git checkout $CURRENT_BRANCH
+        git merge main
+    fi    
+fi
+
 while true; do
     "$PYTHON" "$SCRIPT" "${ARGS[@]}"
     EXIT_CODE=$?
