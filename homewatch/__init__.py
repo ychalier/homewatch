@@ -53,10 +53,9 @@ def main():
     subparsers = parser.add_subparsers(dest="action")
     parser_scan = subparsers.add_parser("scan")
     parser_scan.add_argument("root", type=str)
-    parser_scan.add_argument("-c", "--clear", action="store_true")
-    parser_scan.add_argument("-o", "--output_path", type=str, default=None)
+    parser_scan.add_argument("--clear", action="store_true")
+    parser_scan.add_argument("--output", type=str, default=None)
     parser_runserver = subparsers.add_parser("runserver")
-    parser_runserver.add_argument("host", type=str, default="127.0.0.1:8000", nargs="?")
     parser_runserver.add_argument("-d", "--debug", action="store_true")
     parser_runserver.add_argument("-q", "--qrcode", action="store_true")
     args = parser.parse_args()
@@ -72,8 +71,8 @@ def main():
                 return
             settings.library_root = root.as_posix()
             library = Library.from_scan(settings)
-            if args.output_path is not None:
-                with open(args.output_path, "w", encoding="utf8") as file:
+            if args.output is not None:
+                with open(args.output, "w", encoding="utf8") as file:
                     json.dump(library.to_dict(), file, indent=4)
             else:
                 print(json.dumps(library.to_dict()))
