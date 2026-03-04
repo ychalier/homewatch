@@ -13,10 +13,11 @@ import sys
 import urllib.parse
 
 from .library import Library, Media, SUBTITLE_TRACK, SUBTITLE_FILE, SubtitleTrack, SubtitleFile
-from . import settings
+from .settings import Settings
 
-if settings.VLC_DLL_DIRECTORY is not None and os.path.isdir(settings.VLC_DLL_DIRECTORY) and sys.platform == "win32":
-    os.add_dll_directory(settings.VLC_DLL_DIRECTORY)
+# FIXME
+# if settings.VLC_DLL_DIRECTORY is not None and os.path.isdir(settings.VLC_DLL_DIRECTORY) and sys.platform == "win32":
+#     os.add_dll_directory(settings.VLC_DLL_DIRECTORY)
 import vlc
 
 
@@ -142,13 +143,14 @@ class Player:
     STATE_ENDED = 6
     STATE_ERROR = 7
 
-    def __init__(self):
+    def __init__(self, settings: Settings):
+        self.settings = settings
         self.observers: set[PlayerObserver] = set()
-        self.fastforward_seconds: int = settings.DEFAULT_FASTFORWARD_SECONDS
-        self.rewind_seconds: int = settings.DEFAULT_REWIND_SECONDS
-        self.subs_delay_step_ms: float = settings.DEFAULT_SUBS_DELAY_STEP_MILLISECONDS
-        self.default_volume: int = settings.DEFAULT_VOLUME
-        self.default_aspect_ratio: str | None = settings.DEFAULT_ASPECT_RATIO
+        self.fastforward_seconds: int = settings.default_fastforward_seconds
+        self.rewind_seconds: int = settings.default_rewind_seconds
+        self.subs_delay_step_ms: float = settings.default_subs_delay_step_milliseconds
+        self.default_volume: int = settings.default_volume
+        self.default_aspect_ratio: str | None = settings.default_aspect_ratio
         self.media: Media | None = None
         self.vlc_instance: vlc.Instance | None = None
         self.vlc_media_player: vlc.MediaPlayer | None = None
@@ -177,9 +179,9 @@ class Player:
     def mrl(self, basename: str) -> str:
         if self.media is None:
             raise ValueError("Media is None")
-        if settings.LIBRARY_MODE == "local":
-            return (pathlib.Path(settings.LIBRARY_ROOT) / self.media.folder.path / basename).as_uri()
-        return urllib.parse.urljoin(settings.MEDIA_URL, urllib.parse.quote((self.media.folder.path / basename).as_posix()))
+        if self.settings.library_mode == "local":
+            return (pathlib.Path(self.settings.library_root) / self.media.folder.path / basename).as_uri()
+        return urllib.parse.urljoin(self.settings.media_url, urllib.parse.quote((self.media.folder.path / basename).as_posix()))
 
     @property
     def time(self) -> int | None:
@@ -300,14 +302,14 @@ class Player:
         foreign_audio_track = 0
         local_audio_track = None
         for i, source in enumerate(self.media.audio_sources):
-            if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
+            if source.language in self.settings.preferred_media_language_codes:
                 local_audio_track = i
             if source.title is not None and "vo" in source.title.lower():
                 foreign_audio_track = i
 
         local_subtitle_track = None
         for i, source in enumerate(self.media.subtitle_sources):
-            if source.language in settings.PREFERRED_MEDIA_LANGUAGE_CODES:
+            if source.language in self.settings.preferred_media_language_codes:
                 local_subtitle_track = i
                 break
 
@@ -517,7 +519,7 @@ class Player:
         assert self.vlc_media_player is not None
         if not self.waiting_screen_visible:
             self._volume_before_waiting_screen = self.current_volume
-        self.volume(settings.WAITING_SCREEN_VOLUME)
+        self.volume(self.settings.waiting_screen_volume)
         self.vlc_media_player.set_media(self.vlc_media)
         self.vlc_media_player.play()
         self._playback_begins = True

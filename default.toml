@@ -1,14 +1,12 @@
-[library]
-
 # Library can either be 'local', ie. a local folder containing media files and
 # subfolders, or 'remote', ie. it can fetched from another Homewatch server.
-mode = "local"
+library_mode = "local"
 
 # If the library mode is 'local', then this should be an absolute path to the
 # root folder containing media files. If the library mode is 'remote', this
 # should be the URL to the remote Homewatch server, ending with '/library/'
 # (the trailing slash is important).
-root = "./sample"
+library_root = "./sample"
 
 # Set of media file extensions (anything else will be ignored)
 video_exts = [ ".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm", ".wmv" ]
@@ -29,6 +27,7 @@ thumbnail_height = 300
 # Chromecast settings, use to determine if a media can be casted or not.
 # You must either specify None to disable Chromecast support, or one of the
 # generation enumerated below:
+# 0- NONE
 # 1- GEN1
 # 2- GEN2
 # 3- GEN3
@@ -36,35 +35,28 @@ thumbnail_height = 300
 # 5- GOOGLETV
 # 6- NESTHUB
 # 7- NESTHUBMAX
-
-chromecast_generation = ""
+chromecast_generation = 0
 
 # Threshold for automatic detection of when a media or a folder is 'done',
 # ie. it has been completely seen.
 mark_as_viewed_threshold_seconds = 30
 mark_as_viewed_threshold_ratio = 0.98
 
-[server]
-
 # Server can either be a 'library' and only serve the raw content and the
 # library indexes, or a 'player', in which case it will link to VLC to control
 # media playback.
-mode = "player"
+server_mode = "player"
 
-[server.urls]
 # URL settings
-home = "/"
-static = "/static/"
-media = "/media/"
+home_url = "/"
+static_url = "/static/"
+media_url = "/media/"
 
-[server.hooks]
 # Path to scripts (Bash, Powershell, …) that will be executed either just before
 # the server starts (pre-hooks) or when the server closes (post-hooks). Paths
 # can either be absolute or relative to the `hooks` folder.
-pre = []
-post = []
-
-[player]
+pre_hooks = []
+post_hooks = []
 
 # On Windows, one must specify the path to the VLC installation directory,
 # eg. C:\Program Files\VideoLAN\VLC. This is not required on Linux, in which
@@ -81,18 +73,16 @@ status_path = "status.json"
 show_waiting_screen_at_startup = true
 waiting_screen_volume = 50
 
-[player.video]
-
 # Default settings
-autoplay = true
-shuffle = false
-loop = true
-close_on_end = false
-fastforward_seconds = 30
-rewind_seconds = 30
-subs_delay_step_milliseconds = 500
-volume = 80
-aspect_ratio = ""
+default_autoplay = true
+default_shuffle = false
+default_loop = true
+default_close_on_end = false
+default_fastforward_seconds = 30
+default_rewind_seconds = 30
+default_subs_delay_step_milliseconds = 500
+default_volume = 80
+default_aspect_ratio = ""
 
 # Preferred media language, as a 2 letters ISO 639 code. Supported languages are
 # reported below. This is used to provide library filtering and automatic
@@ -104,8 +94,6 @@ preferred_media_language = "fr"
 # Prevents self-DDOS when messages are fired too quickly, which may occur for
 # some media files.
 broadcast_time_delay_milliseconds = 900
-
-[player.web]
 
 # Path to geckodriver executable
 # Download from https://github.com/mozilla/geckodriver/releases

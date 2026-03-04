@@ -18,7 +18,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from .settings import GECKODRIVER_PATH, FIREFOX_PATH, ADDONS_DIR
+from .settings import Settings
 
 
 ADDON_URL_TEMPLATE = "https://addons.mozilla.org/firefox/addon/{name}/"
@@ -36,8 +36,8 @@ def parse_tag(version: str) -> tuple[int, ...]:
     return tuple(map(int, version.split(".")))
 
 
-def update_addons() -> list[Path]:
-    ADDONS_DIR.mkdir(parents=True, exist_ok=True)
+def update_addons(addons_dir: Path) -> list[Path]:
+    addons_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     for name in ADDONS:
         response = requests.get(ADDON_URL_TEMPLATE.format(name=name))
@@ -56,7 +56,7 @@ def update_addons() -> list[Path]:
             url = url[0]
         path = None
         local_tag = None
-        for cpath in ADDONS_DIR.glob("*.xpi"):
+        for cpath in addons_dir.glob("*.xpi"):
             cname, ctag = cpath.stem.strip(".xpi").split("@")
             if cname == name:
                 path = cpath
@@ -67,7 +67,7 @@ def update_addons() -> list[Path]:
             r.raise_for_status()
             if path is not None:
                 os.remove(path)
-            path = ADDONS_DIR / f"{name}@{online_tag}.xpi"
+            path = addons_dir / f"{name}@{online_tag}.xpi"
             with path.open("wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
@@ -157,18 +157,19 @@ class WebPlayer:
     @see https://www.maketecheasier.com/cheatsheet/twitch-keyboard-shortcuts/
     """
 
-    def __init__(self, server_hostname: str, server_port: int):
+    def __init__(self, settings: Settings, server_hostname: str, server_port: int):
+        self.settings = settings
         self.server_hostname = server_hostname
         self.server_port = server_port
         self.observers: set[WebPlayerObserver] = set()
         self.element: WebElement | None = None
         options = Options()
-        options.binary_location = FIREFOX_PATH.as_posix()
+        options.binary_location = self.settings.firefox_path.as_posix()
         options.set_preference("dom.webdriver.enabled", False)
         options.set_preference("useAutomationExtension", False)
         options.set_preference("media.autoplay.default", 0)
         options.set_preference("media.autoplay.blocking_policy", 0)
-        service = Service(GECKODRIVER_PATH.as_posix())
+        service = Service(self.settings.geckodriver_path.as_posix())
         self.driver = Firefox(options, service)
         self.state: str = "off"
         self.setup()
@@ -182,7 +183,7 @@ class WebPlayer:
         return self.driver.title
 
     def setup(self):
-        for xpi_path in update_addons():
+        for xpi_path in update_addons(self.settings.addons_dir):
             self.driver.install_addon(xpi_path, temporary=True)
         close_extension_welcome_tabs(self.driver, 2)
         self.driver.switch_to.window(self.driver.window_handles[0])

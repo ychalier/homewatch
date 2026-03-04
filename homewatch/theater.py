@@ -7,7 +7,7 @@ from .player import Player, PlayerObserver
 from .history import History
 from .library import Library, LibraryFolder, Media
 from .queue import Queue, StartOfQueueException, EndOfQueueException
-from . import settings
+from .settings import Settings
 
 
 logger = logging.getLogger(__name__)
@@ -15,15 +15,16 @@ logger = logging.getLogger(__name__)
 
 class Theater(PlayerObserver):
 
-    def __init__(self):
+    def __init__(self, settings: Settings):
         PlayerObserver.__init__(self)
-        self.library: Library = Library.from_settings()
-        self.player: Player = Player()
-        self.history: History = History()
-        self.queue: Queue = Queue()
+        self.settings = settings
+        self.library: Library = Library.from_settings(settings)
+        self.player: Player = Player(settings)
+        self.history: History = History(settings.history_path)
+        self.queue: Queue = Queue(settings.default_shuffle, settings.default_loop)
         self.player.setup()
         self.player.bind_observer(self)
-        self.autoplay = settings.DEFAULT_AUTOPLAY
+        self.autoplay = settings.default_autoplay
         self.waiting_screen_visible: bool = False
 
     def load_current(self):
@@ -138,14 +139,14 @@ class Theater(PlayerObserver):
         for media in library_folder.medias:
             progress = self.history[media]
             setattr(media, "progress", progress)
-            done = progress > 0 and progress >= (media.duration - settings.MARK_AS_VIEWED_THRESHOLD_SECONDS) * 1000 and progress / (1000 * media.duration) >= settings.MARK_AS_VIEWED_THRESHOLD_RATIO
+            done = progress > 0 and progress >= (media.duration - self.settings.mark_as_viewed_threshold_seconds) * 1000 and progress / (1000 * media.duration) >= self.settings.mark_as_viewed_threshold_ratio
             setattr(media, "unstarted", progress == 0)
             setattr(media, "done", done)
         for subfolder in library_folder.subfolders:
             progress, duration = self.get_folder_progress(self.library.get_subfolder(library_folder, subfolder))
             setattr(subfolder, "progress", progress)
             setattr(subfolder, "duration", duration)
-            done = progress > 0 and progress >= duration - settings.MARK_AS_VIEWED_THRESHOLD_SECONDS * 1000 and progress / duration >= settings.MARK_AS_VIEWED_THRESHOLD_RATIO
+            done = progress > 0 and progress >= duration - self.settings.mark_as_viewed_threshold_seconds * 1000 and progress / duration >= self.settings.mark_as_viewed_threshold_ratio
             setattr(subfolder, "unstarted", progress == 0)
             setattr(subfolder, "done", done)
 

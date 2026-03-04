@@ -1,17 +1,17 @@
 """Homewatch settings.
-Most imporant settings are LIBRARY_MODE, LIBRARY_ROOT, SERVER_MODE, and
-VLC_DLL_DIRECTORY on Windows.
 """
 
 import enum
-import os
 import sys
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 
 @enum.unique
 class ChromecastGeneration(enum.Enum):
+    NONE = 0
     GEN1 = 1
     GEN2 = 2
     GEN3 = 3
@@ -20,82 +20,171 @@ class ChromecastGeneration(enum.Enum):
     NESTHUB = 6
     NESTHUBMAX = 7
 
-
-def sget(data: dict, key: str, default: str | None = None, assert_in: list | None = None):
-    value = data.get(key, default)
-    if assert_in and not (value in assert_in):
-        raise ValueError(f"Invalid value for key '{key}': got '{value}', expected one of '{", ".join(map(str, assert_in))}'")
-    return value
-
-
-# TODO: variable path
-with open("default.toml", "rb") as file:
-    data = tomllib.load(file)
-
-
-data_library = data.get("library", {})
-LIBRARY_MODE = sget(data_library, "mode", assert_in=["local", "remote"])
-LIBRARY_ROOT = sget(data_library, "root")
-VIDEO_EXTS = set(sget(data_library, "video_exts"))
-SUBTITLE_EXTS = set(sget(data_library, "subtitle_exts"))
-PLAYLIST_EXTS = set(sget(data_library, "playlist_exts"))
-HIDDEN_DIRECTORY = sget(data_library, "hidden_directory")
-THUMBNAIL_WIDTH = sget(data_library, "thumbnail_width")
-THUMBNAIL_HEIGHT = sget(data_library, "thumbnail_height")
-chromecast_generation_value = sget(data_library, "chromecast_generation")
-CHROMECAST_GENERATION = ChromecastGeneration(chromecast_generation_value) if chromecast_generation_value else None
-MARK_AS_VIEWED_THRESHOLD_SECONDS = sget(data_library, "mark_as_viewed_threshold_seconds")
-MARK_AS_VIEWED_THRESHOLD_RATIO = sget(data_library, "mark_as_viewed_threshold_ratio")
-
-data_server = data.get("server", {})
-SERVER_MODE = sget(data_server, "mode", assert_in=["library", "player"])
-
-data_server_urls = data_server.get("urls", {})
-HOME_URL = sget(data_server_urls, "home")
-STATIC_URL = sget(data_server_urls, "static")
-MEDIA_URL = sget(data_server_urls, "media")
-
-data_server_hooks = data_server.get("hooks", {})
-PRE_HOOKS = sget(data_server_hooks, "pre")
-POST_HOOKS = sget(data_server_hooks, "post")
-
-data_player = data.get("player", {})
-VLC_DLL_DIRECTORY = sget(data_player, "vlc_dll_directory")
-HISTORY_PATH = sget(data_player, "history_path")
-STATUS_PATH = sget(data_player, "status_path")
-SHOW_WAITING_SCREEN_AT_STARTUP = sget(data_player, "show_waiting_screen_at_startup")
-WAITING_SCREEN_VOLUME = sget(data_player, "waiting_screen_volume")
-
-data_player_video = data_player.get("video", {})
-DEFAULT_AUTOPLAY = sget(data_player_video, "autoplay")
-DEFAULT_SHUFFLE = sget(data_player_video, "shuffle")
-DEFAULT_LOOP = sget(data_player_video, "loop")
-DEFAULT_CLOSE_ON_END = sget(data_player_video, "close_on_end")
-DEFAULT_FASTFORWARD_SECONDS = sget(data_player_video, "fastforward_seconds")
-DEFAULT_REWIND_SECONDS = sget(data_player_video, "rewind_seconds")
-DEFAULT_SUBS_DELAY_STEP_MILLISECONDS = sget(data_player_video, "subs_delay_step_milliseconds")
-DEFAULT_VOLUME = sget(data_player_video, "volume")
-DEFAULT_ASPECT_RATIO = sget(data_player_video, "aspect_ratio")
-# TODO: parse None?
-
-PREFERRED_MEDIA_LANGUAGE = sget(data_player_video, "preferred_media_language")
-
 LANGUAGE_CODES = {
     "fr": {"fr", "fre", "fra", "french"},
     "en": {"en", "eng", "english"},
 }
+
 LANGUAGE_FLAGS = {
     "fr": "🇫🇷",
     "en": "🇬🇧",
 }
-PREFERRED_MEDIA_LANGUAGE_CODES = LANGUAGE_CODES[PREFERRED_MEDIA_LANGUAGE]
-PREFERRED_MEDIA_LANGUAGE_FLAG = LANGUAGE_FLAGS[PREFERRED_MEDIA_LANGUAGE]
 
-BROADCAST_TIME_DELAY_MILLISECONDS = sget(data_player_video, "broadcast_time_delay_milliseconds")
 
-data_player_web = data_player.get("web", {})
-geckodriver_path_value = sget(data_player_web, "geckodriver_path")
-GECKODRIVER_PATH = Path(geckodriver_path_value) if geckodriver_path_value else (Path("geckodriver.exe") if sys.platform == "win32" else Path("geckodriver"))
-firefox_path_value = sget(data_player_web, "firefox_path")
-FIREFOX_PATH = Path(firefox_path_value) if firefox_path_value else (Path("C:/Program Files/Mozilla Firefox/firefox.exe") if sys.platform == "win32" else Path("/usr/bin/firefox"))
-ADDONS_DIR = Path(sget(data_player_web, "addons_dir"))
+def sget(
+        data: dict,
+        key: str,
+        default: str | None = None,
+        assert_in: list | None = None,
+        empty_is_none: bool = False,
+        none_is_default: bool = False):
+    value = data.get(key, default)
+    if assert_in and not (value in assert_in):
+        raise ValueError(f"Invalid value for key '{key}': got '{value}', expected one of '{", ".join(map(str, assert_in))}'")
+    if empty_is_none and value == "":
+        value = None
+    if none_is_default and value is None:
+        value = default
+    return value
+
+
+def sget_str(*args, **kwargs) -> str:
+    value = sget(*args, **kwargs)
+    assert isinstance(value, str)
+    return value
+
+
+def sget_liststr(*args, **kwargs) -> list[str]:
+    value = sget(*args, **kwargs)
+    assert isinstance(value, list)
+    for x in value:
+        assert isinstance(x, str)
+    return value
+
+
+def sget_setstr(*args, **kwargs) -> set[str]:
+    value = sget(*args, **kwargs)
+    assert isinstance(value, list)
+    for x in value:
+        assert isinstance(x, str)
+    return set(value)
+
+
+def sget_bool(*args, **kwargs) -> bool:
+    value = sget(*args, **kwargs)
+    assert isinstance(value, bool)
+    return value
+
+
+def sget_int(*args, **kwargs) -> int:
+    value = sget(*args, **kwargs)
+    assert isinstance(value, int)
+    return value
+
+
+def sget_float(*args, **kwargs) -> float:
+    value = sget(*args, **kwargs)
+    assert isinstance(value, float)
+    return value
+
+
+
+@dataclass
+class Settings:
+
+    library_mode: Literal["local"] | Literal["remote"]
+    library_root: str
+    video_exts: set[str]
+    subtitle_exts: set[str]
+    playlist_exts: set[str]
+    hidden_directory: str
+    thumbnail_width: int
+    thumbnail_height: int
+    chromecast_generation: ChromecastGeneration
+    mark_as_viewed_threshold_seconds: float
+    mark_as_viewed_threshold_ratio: float
+
+    server_mode: Literal["library"] | Literal["player"]
+
+    home_url: str
+    static_url: str
+    media_url: str
+
+    pre_hooks: list[str]
+    post_hooks: list[str]
+
+    vlc_dll_directory: str | None
+    history_path: str
+    status_path: str
+
+    show_waiting_screen_at_startup: bool
+    waiting_screen_volume: int
+
+    default_autoplay: bool
+    default_shuffle: bool
+    default_loop: bool
+    default_close_on_end: bool
+    default_fastforward_seconds: int
+    default_rewind_seconds: int
+    default_subs_delay_step_milliseconds: int
+    default_volume: int
+    default_aspect_ratio: str | None
+    preferred_media_language: str
+    broadcast_time_delay_milliseconds: int
+
+    geckodriver_path: Path
+    firefox_path: Path
+    addons_dir: Path
+
+    @classmethod
+    def from_file(cls, path: str | Path):
+        with open(Path(__file__).parent.parent / "default.toml", "rb") as file:
+            data = tomllib.load(file)
+        with open(path, "rb") as file:
+            data.update(tomllib.load(file))
+        return cls(
+            library_mode=sget(data, "library_mode", assert_in=["local", "remote"]), # type: ignore
+            library_root=sget_str(data, "library_root"),
+            video_exts=sget_setstr(data, "video_exts"),
+            subtitle_exts=sget_setstr(data, "subtitle_exts"),
+            playlist_exts=sget_setstr(data, "playlist_exts"),
+            hidden_directory=sget_str(data, "hidden_directory"),
+            thumbnail_width=sget_int(data, "thumbnail_width"),
+            thumbnail_height=sget_int(data, "thumbnail_height"),
+            chromecast_generation=ChromecastGeneration(sget_int(data, "chromecast_generation")),
+            mark_as_viewed_threshold_seconds=sget_int(data, "mark_as_viewed_threshold_seconds"),
+            mark_as_viewed_threshold_ratio=sget_float(data, "mark_as_viewed_threshold_ratio"),
+            server_mode=sget(data, "server_mode", assert_in=["library", "player"]), # type: ignore
+            home_url=sget_str(data, "home_url"),
+            static_url=sget_str(data, "static_url"),
+            media_url=sget_str(data, "media_url"),
+            pre_hooks=sget_liststr(data, "pre_hooks"),
+            post_hooks=sget_liststr(data, "post_hooks"),
+            vlc_dll_directory=sget(data, "vlc_dll_directory", empty_is_none=True),
+            history_path=sget_str(data, "history_path"),
+            status_path=sget_str(data, "status_path"),
+            show_waiting_screen_at_startup=sget_bool(data, "show_waiting_screen_at_startup"),
+            waiting_screen_volume=sget_int(data, "waiting_screen_volume"),
+            default_autoplay=sget_bool(data, "default_autoplay"),
+            default_shuffle=sget_bool(data, "default_shuffle"),
+            default_loop=sget_bool(data, "default_loop"),
+            default_close_on_end=sget_bool(data, "default_close_on_end"),
+            default_fastforward_seconds=sget_int(data, "default_fastforward_seconds"),
+            default_rewind_seconds=sget_int(data, "default_rewind_seconds"),
+            default_subs_delay_step_milliseconds=sget_int(data, "default_subs_delay_step_milliseconds"),
+            default_volume=sget_int(data, "default_volume"),
+            default_aspect_ratio=sget(data, "default_aspect_ratio", empty_is_none=True),
+            preferred_media_language=sget(data, "preferred_media_language", assert_in=["fr", "en"]), # type: ignore
+            broadcast_time_delay_milliseconds=sget_int(data, "broadcast_time_delay_milliseconds"),
+            geckodriver_path=Path(sget_str(data, "geckodriver_path", default="geckodriver.exe" if sys.platform == "win32" else "geckodriver", empty_is_none=True, none_is_default=True)),
+            firefox_path=Path(sget_str(data, "firefox_path", default="C:\\Program Files\\Mozilla Firefox\\firefox.exe" if sys.platform == "win32" else "/usr/bin/firefox", empty_is_none=True, none_is_default=True)),
+            addons_dir=Path(sget_str(data, "addons_dir")),
+        )
+
+    @property
+    def preferred_media_language_codes(self) -> set[str]:
+        return LANGUAGE_CODES[self.preferred_media_language]
+
+    @property
+    def preferred_media_language_flag(self) -> str:
+        return LANGUAGE_FLAGS[self.preferred_media_language]

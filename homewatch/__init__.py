@@ -7,7 +7,7 @@ import re
 
 from .library import Library
 from .server import runserver
-from . import settings
+from .settings import Settings
 
 
 def setup_logging(verbose: bool = False):
@@ -63,6 +63,7 @@ def build_sample_directory():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-c", "--config", type=pathlib.Path, default=pathlib.Path("default.toml"))
     subparsers = parser.add_subparsers(dest="action")
     parser_scan = subparsers.add_parser("scan")
     parser_scan.add_argument("root", type=str)
@@ -74,15 +75,17 @@ def main():
     parser_runserver.add_argument("-q", "--qrcode", action="store_true")
     args = parser.parse_args()
     setup_logging(args.verbose)
-    if settings.LIBRARY_MODE == "local" and settings.LIBRARY_ROOT == os.path.realpath("sample"):
+    settings = Settings.from_file(args.config)
+    if settings.library_mode == "local" and settings.library_root == os.path.realpath("sample"):
         build_sample_directory()
     match args.action:
         case "scan":
             root = pathlib.Path(args.root)
             if args.clear:
-                Library.clear_hidden_directories(root)
+                Library.clear_hidden_directories(root, settings.hidden_directory)
                 return
-            library = Library.from_scan(root)
+            settings.library_root = root.as_posix()
+            library = Library.from_scan(settings)
             if args.output_path is not None:
                 with open(args.output_path, "w", encoding="utf8") as file:
                     json.dump(library.to_dict(), file, indent=4)
@@ -90,4 +93,4 @@ def main():
                 print(json.dumps(library.to_dict()))
         case "runserver":
             hostname, port = parse_host_string(args.host)
-            runserver(hostname, port, args.debug, args.qrcode)
+            runserver(settings, hostname, port, args.debug, args.qrcode)

@@ -12,3 +12,6 @@ sample
 
 .extensions
 geckodriver*
+
+*.toml
+!default.toml

@@ -20,7 +20,7 @@ from .library import LibraryFolder, Hierarchy, Media
 from .theater import Theater
 from .player import Player, PlayerObserver
 from .web import WebPlayer, WebPlayerObserver
-from . import settings
+from .settings import Settings, ChromecastGeneration
 
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
         self.connections = set()
         self.theater = self.server.theater
         self.player = self.server.theater.player
-        self.close_on_end = settings.DEFAULT_CLOSE_ON_END
+        self.close_on_end = self.server.settings.default_close_on_end
         self.sleep_at = None
         self.player.bind_observer(self)
         self.sleep_watcher = SleepWatcher(self)
@@ -97,7 +97,7 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
     def on_time_changed(self, new_time: int):
         if self.theater.waiting_screen_visible:
             return
-        if self._previous_time_broadcast is not None and new_time != 0 and abs(new_time - self._previous_time_broadcast) < settings.BROADCAST_TIME_DELAY_MILLISECONDS:
+        if self._previous_time_broadcast is not None and new_time != 0 and abs(new_time - self._previous_time_broadcast) < self.server.settings.broadcast_time_delay_milliseconds:
             logger.debug("Ignored time broadcast at time %d", new_time)
             return
         self._previous_time_broadcast = new_time
@@ -232,17 +232,18 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
 
 class LibraryServer:
 
-    def __init__(self):
+    def __init__(self, settings: Settings):
+        self.settings = settings
         self.jinja = jinja2.Environment(
             loader=jinja2.FileSystemLoader(BASEDIR / "templates"))
         self.jinja.globals.update(
-            url=lambda *x: urljoin(settings.HOME_URL, *x),
-            static=lambda *x: urljoin(settings.STATIC_URL, *x),
-            media=lambda *x: urljoin(settings.MEDIA_URL, *x),
-            media_url=settings.MEDIA_URL,
-            playermode=settings.SERVER_MODE == "player",
-            enable_chromecast=settings.CHROMECAST_GENERATION is not None,
-            preferred_media_language_flag=settings.PREFERRED_MEDIA_LANGUAGE_FLAG,
+            url=lambda *x: urljoin(settings.home_url, *x),
+            static=lambda *x: urljoin(settings.static_url, *x),
+            media=lambda *x: urljoin(settings.media_url, *x),
+            media_url=settings.media_url,
+            playermode=settings.server_mode == "player",
+            enable_chromecast=settings.chromecast_generation != ChromecastGeneration.NONE,
+            preferred_media_language_flag=settings.preferred_media_language_flag,
             first_library_load=True,
         )
 
@@ -250,18 +251,18 @@ class LibraryServer:
         return "library"
 
     def _get_library_folder(self, relpath: pathlib.Path) -> LibraryFolder | None:
-        return LibraryFolder.from_settings(relpath.parent if relpath.name in {"index.html", "index.json"} else relpath)
+        return LibraryFolder.from_settings(self.settings, relpath.parent if relpath.name in {"index.html", "index.json"} else relpath)
 
     def view_landing(self, request: werkzeug.Request) -> werkzeug.Response:
         return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
             "Location": urljoin(
-            request.host_url + settings.HOME_URL,
+            request.host_url + self.settings.home_url,
             self._get_landing_redirection_target())
         })
 
     def view_player(self, request: werkzeug.Request) -> werkzeug.Response:
         return werkzeug.Response("Found", status=302, mimetype="text/plain", headers={
-            "Location": urljoin( request.host_url + settings.HOME_URL, "library")
+            "Location": urljoin( request.host_url + self.settings.home_url, "library")
         })
 
     def view_basic(self, template_name, **kwargs) -> werkzeug.Response:
@@ -298,7 +299,7 @@ class LibraryServer:
             return self.view_about(request)
         elif path.is_relative_to("library/"):
             if str(path.relative_to("library/")) == "hierarchy.json":
-                hierarchy = Hierarchy.from_settings()
+                hierarchy = Hierarchy.from_settings(self.settings)
                 text = json.dumps(hierarchy.to_dict())
                 return werkzeug.Response(text, status=200, mimetype="application/json")
             return self.view_library(request)
@@ -319,30 +320,30 @@ class LibraryServer:
 
 class PlayerServer(LibraryServer):
 
-    def __init__(self, hostname: str, port: int):
-        LibraryServer.__init__(self)
-        self.theater = Theater()
+    def __init__(self, settings: Settings, hostname: str, port: int):
+        LibraryServer.__init__(self, settings)
+        self.theater = Theater(settings)
         self.wss = WebsocketServer(self, hostname)
         self.hostname = hostname
         self.port = port
         self.wss.start()
         self.web_player: WebPlayer | None = None
-        for hook_path in settings.PRE_HOOKS:
+        for hook_path in settings.pre_hooks:
             execute_hook(hook_path)
-        if settings.SHOW_WAITING_SCREEN_AT_STARTUP:
+        if settings.show_waiting_screen_at_startup:
             self.theater.show_waiting_screen()
 
     def export_status(self) -> dict:
         data = self.theater.get_status_dict()
-        if settings.STATUS_PATH:
-            with open(settings.STATUS_PATH, "w") as file:
+        if self.settings.status_path:
+            with open(self.settings.status_path, "w") as file:
                 json.dump(data, file)
         return data
 
     def read_status(self) -> dict | None:
-        if settings.STATUS_PATH and os.path.isfile(settings.STATUS_PATH):
-            logger.info("Loading status from %s", settings.STATUS_PATH)
-            with open(settings.STATUS_PATH, "r") as file:
+        if self.settings.status_path and os.path.isfile(self.settings.status_path):
+            logger.info("Loading status from %s", self.settings.status_path)
+            with open(self.settings.status_path, "r") as file:
                 status = json.load(file)
             return status
         return None
@@ -352,8 +353,8 @@ class PlayerServer(LibraryServer):
         self.export_status()
         self.theater.close()
         if hooks:
-            logger.debug("Post hooks are enabled: %s", ", ".join(settings.POST_HOOKS))
-            for hook_path in settings.POST_HOOKS:
+            logger.debug("Post hooks are enabled: %s", ", ".join(self.settings.post_hooks))
+            for hook_path in self.settings.post_hooks:
                 execute_hook(hook_path)
         if restart:
             logger.info("Restarting")
@@ -398,7 +399,7 @@ class PlayerServer(LibraryServer):
                 return werkzeug.Response("400 Bad Request", status=400, mimetype="text/plain")
             self.theater.hide_waiting_screen()
             if self.web_player is None:
-                self.web_player = WebPlayer(self.hostname, self.port)
+                self.web_player = WebPlayer(self.settings, self.hostname, self.port)
                 self.web_player.bind_observer(self.wss)
             self.web_player.load(url)
         template = self.jinja.get_template("web.html")
@@ -566,18 +567,18 @@ class PlayerServer(LibraryServer):
         return werkzeug.Response("404 Not Found", status=404, mimetype="text/plain")
 
 
-def create_app(hostname: str = "127.0.0.1", port: int = 8000, with_static: bool = True):
-    if settings.SERVER_MODE == "library":
-        app = LibraryServer()
+def create_app(settings: Settings, hostname: str = "127.0.0.1", port: int = 8000, with_static: bool = True):
+    if settings.server_mode == "library":
+        app = LibraryServer(settings)
     else:
-        app = PlayerServer(hostname, port)
+        app = PlayerServer(settings, hostname, port)
     logger.info("Created WSGI app %s", app.__class__.__name__)
     if with_static:
         app.wsgi_app = werkzeug.middleware.shared_data.SharedDataMiddleware(
             app.wsgi_app,
             {
                 '/static': str(BASEDIR / "static"),
-                '/media': str(pathlib.Path(settings.LIBRARY_ROOT)) if settings.LIBRARY_MODE == "local" else "",
+                '/media': str(pathlib.Path(settings.library_root)) if settings.library_mode == "local" else "",
             })
     return app
 
@@ -590,9 +591,9 @@ def execute_hook(path: str):
     subprocess.run(str(p), shell=True, start_new_session=True)
 
 
-def runserver(hostname: str = "127.0.0.1", port: int = 8000,
+def runserver(settings: Settings, hostname: str = "127.0.0.1", port: int = 8000,
               debug: bool = False, show_qrcode: bool = False):
-    app = create_app(hostname, port)
+    app = create_app(settings, hostname, port)
     logger.info("Starting Werkzeug development server at %s:%d", hostname, port)
     if show_qrcode:
         qr = qrcode.QRCode()

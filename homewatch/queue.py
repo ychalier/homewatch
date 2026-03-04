@@ -31,12 +31,12 @@ class Queue:
     their indices through brackets.
     """
 
-    def __init__(self):
+    def __init__(self, default_shuffle: bool, default_loop: bool):
         self.elements: list[Media] = []
         self.ordering: list[int] = []
         self.current: int | None = None
-        self.shuffle: bool = settings.DEFAULT_SHUFFLE
-        self.loop: bool = settings.DEFAULT_LOOP
+        self.shuffle: bool = default_shuffle
+        self.loop: bool = default_loop
     
     def to_dict(self) -> dict:
         return {

@@ -4,7 +4,6 @@ import logging
 import os
 
 from .library import Media
-from .settings import HISTORY_PATH
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class History:
 
-    def __init__(self, path: str = HISTORY_PATH):
+    def __init__(self, path: str):
         self._path = path
         os.makedirs(self._path, exist_ok=True)
         self._data = {}
