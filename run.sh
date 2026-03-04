@@ -2,7 +2,8 @@
 
 PYTHON="python"
 SCRIPT="homewatch.py"
-ARGS=("runserver")
+CONFIGNAME=${1-default.toml}
+ARGS=("-c" "$CONFIGNAME" "runserver")
 
 RESTART_CODE=42
 

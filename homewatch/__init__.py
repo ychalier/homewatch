@@ -36,6 +36,7 @@ def build_sample_directory(full: bool):
         path = os.path.join(root, filename)
         if os.path.isfile(path):
             continue
+        pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
         response = requests.get(url, stream=True)
         response.raise_for_status()
         length = response.headers.get("content-length")
