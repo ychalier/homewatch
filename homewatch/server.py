@@ -6,15 +6,16 @@ import pathlib
 import subprocess
 import threading
 import time
+import traceback
 import urllib.parse
 
 import jinja2
 import qrcode
 import websockets
-import websockets.exceptions
 import werkzeug
 import werkzeug.middleware.shared_data
 import werkzeug.serving
+from websockets.asyncio.connection import Connection
 
 from .library import LibraryFolder, Hierarchy, Media
 from .theater import Theater
@@ -77,14 +78,17 @@ class SleepWatcher(threading.Thread):
 
 class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
 
-    def __init__(self, server: "PlayerServer", hostname: str):
+    def __init__(self, server: "PlayerServer", host: str, port: int):
         threading.Thread.__init__(self, daemon=True)
         PlayerObserver.__init__(self)
         WebPlayerObserver.__init__(self)
         self.server = server
-        self.host = hostname
-        self.port = None
-        self.connections = set()
+        self.host = host
+        self.port = port
+        self._clients: dict[tuple[str, int], Connection] = {}
+        self._stop_event: asyncio.Event | None = None
+        self._ws: websockets.Server | None = None # type: ignore
+        self._loop: asyncio.AbstractEventLoop | None = None
         self.theater = self.server.theater
         self.player = self.server.theater.player
         self.close_on_end = self.server.settings.default_close_on_end
@@ -116,17 +120,18 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
         if new_state == Player.STATE_ENDED and self.close_on_end:
             self.close()
 
-    def close(self):
-        logger.info("Closing websocket server")
-        self.server.close(hooks=True)
+    def _run_coroutine(self, coro):
+        if not self._loop or self._loop.is_closed():
+            raise RuntimeError("Server is not running")
+        asyncio.run_coroutine_threadsafe(coro, self._loop)
 
     def _broadcast(self, message: str):
         logger.debug("Broadcasting %s", message)
-        websockets.broadcast(self.connections, message)
+        websockets.broadcast(self._clients.values(), message)
 
-    def _on_client_message(self, websocket, message: str):
-        logger.debug("Websocket %s \"%s\"", websocket.id.hex, message)
-        if message == "PONG":
+    async def _on_client_message(self, conn: Connection, message: str | bytes):
+        logger.debug("Websocket %s \"%s\"", conn.remote_address, message)
+        if not isinstance(message, str):
             return
         cmd, *args = message.split(" ")
         match cmd:
@@ -182,9 +187,9 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
             case "MEDI":
                 self._broadcast(f"MPTH {self.player.media_path}")
             case "WEB":
-                self._on_client_message_web(websocket, args[0], args[1:])
-        
-    def _on_client_message_web(self, websocket, action: str, args: list[str]):
+                self._on_client_message_web(conn, args[0], args[1:])
+
+    def _on_client_message_web(self, conn: Connection, action: str, args: list[str]):
         if self.server.web_player is None:
             return
         if action == "close":
@@ -192,42 +197,68 @@ class WebsocketServer(threading.Thread, PlayerObserver, WebPlayerObserver):
             self.server.web_player = None
         else:
             self.server.web_player.execute_action(action)
-    
+
     def on_page_loaded(self, url: str, title: str, state: str):
         body = json.dumps({"url": url, "title": title, "state": state})
         self._broadcast(f"WEBLOAD {body}")
-    
+
     def on_webplayer_closed(self):
         self._broadcast(f"WEBCLOS")
 
-    def run(self):
-        async def register(websocket):
-            logger.debug("WebSocket client connected: %s", websocket.id.hex)
-            self.connections.add(websocket)
+    async def _run_forever(self):
+        logger.debug("Entering _run_forever")
+        assert self._stop_event
+
+        async def register(conn: Connection):
+            key: tuple[str, int] = conn.remote_address
+            logger.debug("New client %s:%d", key[0], key[1])
+            self._clients[key] = conn
             try:
-                async for message in websocket:
+                async for message in conn:
                     try:
-                        self._on_client_message(websocket, message)
+                        await self._on_client_message(conn, message)
                     except Exception as err:
-                        logger.error(
-                            "Error on client %s message \"%s\": %s",
-                            websocket.id.hex,
-                            message,
-                            err)
-            except websockets.exceptions.ConnectionClosedError:
+                        traceback.print_exc()
+            except Exception:
                 pass
-            except ConnectionResetError:
-                pass
-            logger.debug("WebSocket client disconnected: %s", websocket.id.hex)
-            self.connections.remove(websocket)
-        async def start_server():
-            async with websockets.serve(register, self.host, None) as wserver:
-                for socket in wserver.sockets:
-                    self.port = socket.getsockname()[1]
-                    break
-                logger.info("Starting websocket server at ws://%s:%d", self.host, self.port)
-                await asyncio.Future()
-        asyncio.run(start_server())
+            finally:
+                logger.debug("Client %s:%d disconnected", key[0], key[1])
+                del self._clients[key]
+
+        self._ws = await websockets.serve(register, self.host, self.port)
+        logger.info("Started server at ws://%s:%d", self.host, self.port)
+        try:
+            stop_task = asyncio.create_task(self._stop_event.wait())
+            done, pending = await asyncio.wait([stop_task], return_when=asyncio.FIRST_COMPLETED)
+            for task in pending:
+                task.cancel()
+        except Exception as e:
+            logger.warning("Error while waiting: %s", e)
+        finally:
+            self._ws.close()
+            logger.debug("Waiting for the server to be closed")
+            await self._ws.wait_closed()
+            logger.debug("Server is closed")
+
+        logger.debug("Exiting _run_forever")
+
+    def run(self):
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+        self._stop_event = asyncio.Event()
+        try:
+            self._loop.run_until_complete(self._run_forever())
+        finally:
+            logger.debug("Closing event loop")
+            self._loop.close()
+
+    def close(self, close_server: bool = True):
+        logger.info("Closing websocket server")
+        if self._loop and self._stop_event:
+            self._loop.call_soon_threadsafe(self._stop_event.set)
+            logger.debug("Set stop event")
+        if close_server:
+            self.server.close(hooks=True)
 
 
 class LibraryServer:
@@ -323,7 +354,7 @@ class PlayerServer(LibraryServer):
     def __init__(self, settings: Settings):
         LibraryServer.__init__(self, settings)
         self.theater = Theater(settings)
-        self.wss = WebsocketServer(self, settings.server_host)
+        self.wss = WebsocketServer(self, settings.server_host, 42012)
         self.hostname = settings.server_host
         self.port = settings.server_port
         self.wss.start()
@@ -351,7 +382,9 @@ class PlayerServer(LibraryServer):
     def close(self, hooks: bool = True, restart: bool = False):
         logger.info("Closing server, hooks %s, restart %s", "ON" if hooks else "OFF", "ON" if restart else "OFF")
         self.export_status()
+        self.wss.close(False)
         self.theater.close()
+        self.wss.join()
         if hooks:
             logger.debug("Post hooks are enabled: %s", ", ".join(self.settings.post_hooks))
             for hook_path in self.settings.post_hooks:
@@ -424,7 +457,7 @@ class PlayerServer(LibraryServer):
         if target == "next":
             self.wss._broadcast("QUEU")
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
-    
+
     def _media_from_query_path(self, query: dict[str, None | str | list[str]]) -> Media | None:
         path = query.get("path")
         if path is None:
@@ -492,7 +525,7 @@ class PlayerServer(LibraryServer):
             self.close(hooks)
         threading.Thread(target=callback).start()
         return werkzeug.Response("OK", status=204, mimetype="text/plain")
-    
+
     def view_api_restart(self, request: werkzeug.Request) -> werkzeug.Response:
         def callback():
             time.sleep(.1)
@@ -524,7 +557,7 @@ class PlayerServer(LibraryServer):
         else:
             self.theater.show_waiting_screen()
         return werkzeug.Response("200 OK", status=200, mimetype="text/plain")
-    
+
     def view_api_wss(self, request: werkzeug.Request) -> werkzeug.Response:
         return werkzeug.Response(f"ws://{self.wss.host}:{self.wss.port}", status=200, mimetype="text/plain")
 

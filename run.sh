@@ -6,8 +6,17 @@ ARGS=("runserver")
 
 RESTART_CODE=42
 
+# Wait until interface gets an IP
 while true; do
-    echo "Running Homewatch..."
+    localip=$(ip -4 addr show | awk '/inet /{print $2}' | cut -d/ -f1 | grep -v 127.0.0.1 | head -n1)
+    if [ -n "$localip" ]; then
+        break
+    fi
+    echo "Not connected to network, retrying in 1s..."
+    sleep 1
+done
+
+while true; do
     "$PYTHON" "$SCRIPT" "${ARGS[@]}"
     EXIT_CODE=$?
     if [ "$EXIT_CODE" -eq "$RESTART_CODE" ]; then
