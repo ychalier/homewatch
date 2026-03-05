@@ -59,26 +59,28 @@ You'll need [Python 3](https://www.python.org/) and:
     ```console
     pip install -r requirements.txt
     ```
-3. Edit the settings in [homewatch/settings.py](homewatch/settings.py),
+3. Copy and edit the settings in [default.toml](default.toml),
    everything is explained in the comments 
+   ```bash
+   cp default.toml myconfig.toml ; nano myconfig.toml
+   ```
 
 ### Usage
 
-Call the main script [homewatch.py](homewatch.py) with the `runserver` argument:
+Call the main script [run.sh](run.sh) with your config file as argument:
 
 ```console
-python homewatch.py runserver
+./run.sh myconfig.toml
 ```
 
-Open a web browser to http://127.0.0.1:8000/, and you should see your media
-library.
+Open a web browser to printed URL, and you should see your media library.
 
 ## Home Setup Scenario
 
 Here is an example scenario, to get an idea of how Homewatch can be used.
 
 A Raspberry Pi has media files stored on a hard drive. Install Homewatch on it,
-set `SERVER_MODE` to `library`, `LIBRARY_MODE` to `local` and `LIBRARY_ROOT` to
+set `server_mode` to `library`, `library_mode` to `local` and `library_root` to
 the hard drive path, e.g. `/mnt/usb/`. As Homewatch server is a
 [WSGI](https://wsgi.readthedocs.io/en/latest/) application, it can be embedded
 within an Apache server, e.g. with [mod_wsgi](https://modwsgi.readthedocs.io/).
@@ -98,19 +100,16 @@ Alias /media/ /mnt/usb/
 </Directory>
 ```
 
-Then, on a computer, install Homewatch again, set `SERVER_MODE` to `player`,
-`LIBRARY_MODE` to `remote` and `LIBRARY_ROOT` to the Raspberry Pi URL, e.g.
+Then, on a computer, install Homewatch again, set `server_mode` to `player`,
+`library_mode` to `remote` and `library_root` to the Raspberry Pi URL, e.g.
 `http://192.168.1.42/library/`. Start Homewatch with the following command:
 
 ```console
-python homewatch.py --qrcode 192.168.1.69:8000
+./run.sh myconfig.toml
 ```
 
-The `--qrcode` flag is used to print a QR code in the terminal, that can be 
-scanned with the phone to get redirected to the control remote. `192.168.1.69`
-is the local IP address of the laptop.
-
-On the phone, go to http://192.168.1.69:8000 (or scan the QR code), and voilà!
+If `192.168.1.69` is the local IP address of the laptop, on the phone, go to
+http://192.168.1.69:8000 (or scan the QR code), and voilà!
 
 ## Built With
 
