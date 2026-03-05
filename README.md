@@ -100,6 +100,10 @@ Alias /media/ /mnt/usb/
 </Directory>
 ```
 
+Also, set the `HOMEWATCH_CONFIG` environment variable to the path of your
+custom configuration file, e.g. add
+`export HOMEWATCH_CONFIG=/home/foo/myconfig.toml` to `/etc/apache2/envvars`.
+
 Then, on a computer, install Homewatch again, set `server_mode` to `player`,
 `library_mode` to `remote` and `library_root` to the Raspberry Pi URL, e.g.
 `http://192.168.1.42/library/`. Start Homewatch with the following command:
