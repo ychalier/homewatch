@@ -152,6 +152,10 @@ class Settings:
             data = tomllib.load(file)
         with open(path, "rb") as file:
             data.update(tomllib.load(file))
+        library_mode = sget(data, "library_mode", assert_in=["local", "remote"])
+        library_root = sget_str(data, "library_root")
+        if library_mode == "local":
+            library_root = str(Path(library_root).absolute())
         return cls(
             server_mode=sget(data, "server_mode", assert_in=["library", "player"]), # type: ignore
             server_host=sget_str(data, "server_host", default=guess_local_ip(), empty_is_none=True, none_is_default=True),
@@ -161,8 +165,8 @@ class Settings:
             media_url=sget_str(data, "media_url"),
             pre_hooks=sget_liststr(data, "pre_hooks"),
             post_hooks=sget_liststr(data, "post_hooks"),
-            library_mode=sget(data, "library_mode", assert_in=["local", "remote"]), # type: ignore
-            library_root=sget_str(data, "library_root"),
+            library_mode=library_mode, # type: ignore
+            library_root=library_root,
             video_exts=sget_setstr(data, "video_exts"),
             subtitle_exts=sget_setstr(data, "subtitle_exts"),
             playlist_exts=sget_setstr(data, "playlist_exts"),
