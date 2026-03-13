@@ -60,6 +60,20 @@ function setDisabledClass(elements, disabled) {
     }
 }
 
+function parseSubfiles(mediaElement) {
+    const split = mediaElement.getAttribute("subfiles").split("|");
+    const subfiles = [];
+    for (const bit of split.slice(0, split.length - 1)) {
+        const i = bit.indexOf(";");
+        const language = bit.slice(0, i);
+        const basename = bit.slice(i + 1);
+        subfiles.push({
+            language: language,
+            basename: basename
+        });
+    }
+    return subfiles;
+}
 
 function showMediaDetails(mediaElement) {
     const template = document.getElementById("template-media-details");
@@ -68,6 +82,13 @@ function showMediaDetails(mediaElement) {
     detailsElement.querySelector(".title").innerHTML = mediaElement.querySelector(".title").innerHTML;
     detailsElement.querySelector(".subtitle").innerHTML = mediaElement.querySelector(".subtitle").innerHTML;
     detailsElement.querySelector(".media-details-url").href = mediaElement.getAttribute("href");
+    const subfilesContainer = detailsElement.querySelector(".subfiles");
+    subfilesContainer.innerHTML = "";
+    for (const subfile of parseSubfiles(mediaElement)) {
+        const tag = create(subfilesContainer, "a", "button");
+        tag.innerHTML = `<i class="icon icon-language"></i> ${subfile.language.toUpperCase()}`;
+        tag.href = subfile.basename;
+    }
     if (ENABLE_CHROMECAST) {
         detailsElement.querySelector(".media-details-cast").href = CAST_URL + "?" + new URLSearchParams({
             url: "http://" + window.location.host + mediaElement.getAttribute("href"),

@@ -88,6 +88,7 @@
                      {% if m.episode %}episode="{{ m.episode }}"{% endif %}
                      {% if m.director %}director="{{ m.director }}"{% endif %}
                      {% if m.year %}year="{{ m.year }}"{% endif %}
+                     subfiles="{% for subsrc in m.subtitle_sources %}{% if subsrc.type == 1 %}{{ subsrc.language }};{{ media(library.path, subsrc.basename) }}|{% endif %}{% endfor %}"
                      duration="{{ m.duration_ms }}"
                      path="{{ url(library.path, m.basename)[1:] }}"
                      href="{{ media(library.path, m.basename) }}"
@@ -144,7 +145,8 @@
                     <button class="media-details-viewed">Marquer comme vu</button>
                     <button class="media-details-unviewed">Marquer comme non vu</button>
                     {% endif %}
-                    <a class="button media-details-url">Lien</a>
+                    <a class="button media-details-url"><i class="icon icon-link"></i> Télécharger</a>
+                    <span class="subfiles"></span>
                     {% if enable_chromecast %}
                      
                     <a class="button media-details-cast">Cast</a>
